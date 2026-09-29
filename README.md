@@ -1,84 +1,47 @@
-# Caul — Voice Assistant
+#S Caul
 
-A Python-based voice assistant that listens to spoken commands and responds using text-to-speech. Caul can answer questions, search the web, play music, check the weather, open apps, and even play games — all hands-free.
+Caul is a small Python voice assistant for your computer. We are building it
+one working step at a time so each feature is understandable and testable
+before moving on.
 
----
+## Step 1: run the voice loop
 
-## Features
+This first version listens for one phrase at a time, greets you, repeats other
+phrases, and exits when you say "goodbye", "quit", or "exit". It is intentionally
+small; web search, weather, music, and games are later steps in the
+[learning roadmap](ROADMAP.md).
 
-- **Speech recognition** — listens to your voice using your microphone
-- **Text-to-speech responses** — replies out loud using Google TTS
-- **Web search** — searches Google or YouTube on command
-- **App shortcuts** — opens Gmail, Instagram, Twitter, Amazon, Google Keep
-- **Weather** — pulls up current weather information
-- **Music** — searches and opens Spotify
-- **Calculator** — handles basic arithmetic operations by voice
-- **Rock, Paper, Scissors** — voice-controlled game against the assistant
-- **Personalization** — remembers your name during the session
+### Set up on Windows
 
----
+Install Python 3.9 or newer, connect a microphone, then open PowerShell in this
+project folder and run:
 
-## Tech Stack
-
-- **Language:** Python 3
-- **Speech recognition:** `SpeechRecognition`
-- **Text-to-speech:** `gTTS` (Google Text-to-Speech), `pyttsx3`
-- **Audio playback:** `playsound`
-- **Browser control:** `webbrowser`
-- **Other:** `pyautogui`, `Pillow`, `BeautifulSoup4`, `ssl`, `certifi`
-
----
-
-## Getting Started
-
-### Prerequisites
-
-- Python 3.7+
-- A working microphone
-- pip
-
-### Install dependencies
-
-```bash
-pip install speechrecognition gtts pyttsx3 playsound pyautogui Pillow beautifulsoup4 urllib3 certifi
+```powershell
+py -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe caul.py
 ```
 
-### Run the assistant
+Speech recognition sends audio to Google's recognition service and requires an
+internet connection. Caul speaks using your computer's local text-to-speech
+engine.
 
-```bash
-python caul.py
+### Check the first step
+
+Run the automated checks:
+
+```powershell
+.\.venv\Scripts\python.exe -m unittest discover -s tests -v
 ```
 
-Caul will start listening immediately. Speak a command and it will respond.
+Then run `caul.py` and try:
 
----
+1. Say "hello" and check that Caul answers.
+2. Say a short sentence and check that Caul repeats it.
+3. Say "goodbye" and check that Caul exits.
+4. Try again with the microphone unplugged or internet disconnected and note
+   the error before changing anything.
 
-## Example Commands
-
-| What you say | What Caul does |
-|---|---|
-| `"Hello"` / `"Hey"` | Greets you by name |
-| `"What is your name?"` | Introduces itself |
-| `"Search for Python tutorials"` | Opens Google search |
-| `"YouTube for lofi music"` | Opens YouTube search |
-| `"Play music for jazz"` | Opens Spotify search |
-| `"What time is it?"` | Tells you the current time |
-| `"What's the weather today?"` | Opens weather results |
-| `"Open Gmail"` | Opens your Gmail inbox |
-| `"Let's play a game"` | Starts Rock, Paper, Scissors |
-| `"5 plus 3"` | Returns the result out loud |
-| `"Exit"` / `"Goodbye"` | Shuts down the assistant |
-
----
-
-## Known Limitations
-
-- Requires an active internet connection for Google TTS and web searches
-- Speech recognition accuracy depends on microphone quality and background noise
-- The MP3 audio files generated during TTS are created and deleted automatically in the working directory
-
----
-
-## Author
-
-**Jeff Godonou** — [github.com/jeffGodonou](https://github.com/jeffGodonou)
+If a check fails, first compare what you heard with the expected behavior,
+then change one thing and rerun the same check. See the roadmap for the next
+milestones.
