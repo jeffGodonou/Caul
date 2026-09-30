@@ -3,7 +3,10 @@ import sys
 
 def speak(text):
     """Say text through the computer's local text-to-speech voice."""
-    import pyttsx3
+    try:
+        import pyttsx3  # pyright: ignore[reportMissingImports]
+    except ImportError as exc:
+        raise RuntimeError("The 'pyttsx3' package is required for speech output.") from exc
 
     engine = getattr(speak, "_engine", None)
     if engine is None:
@@ -16,7 +19,9 @@ def speak(text):
 
 def listen():
     """Listen once and return recognized words, or None if they were unclear."""
-    import speech_recognition as sr
+    from importlib import import_module
+
+    sr = import_module("speech_recognition")
 
     recognizer = sr.Recognizer()
     try:
