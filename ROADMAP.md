@@ -1,6 +1,6 @@
 # Caul learning roadmap
 
-Build one milestone at a time. The current code is **Milestone 1** only; the
+Build one milestone at a time. The current code is at **Milestone 2**; the
 other features are deliberately not implemented yet. After each milestone,
 run its checks, try it by voice, and fix any failure before continuing.
 
@@ -13,7 +13,7 @@ run its checks, try it by voice, and fix any failure before continuing.
 - **Check:** run the unit tests, then say "hello", a sentence, and "goodbye".
 - **Done when:** all three spoken checks work and goodbye exits cleanly.
 
-## Milestone 2 — Recognize commands
+## Milestone 2 — Recognize commands (implemented)
 
 - **Build:** split command handling into a small `respond` function and add
   help, the current time, and unknown-command responses.
