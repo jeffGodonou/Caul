@@ -4,10 +4,11 @@ Caul is a small Python voice assistant for your computer. We are building it
 one working step at a time so each feature is understandable and testable
 before moving on.
 
-## Step 1: run the voice loop
+## Step 2: recognize commands
 
-This first version listens for one phrase at a time, greets you, repeats other
-phrases, and exits when you say "goodbye", "quit", or "exit". It is intentionally
+This version listens for one phrase at a time, greets you, responds to "help"
+and "what time is it", and exits when you say "goodbye", "quit", or "exit".
+Other phrases get a helpful unknown-command response. It is intentionally
 small; web search, weather, music, and games are later steps in the
 [learning roadmap](ROADMAP.md).
 
@@ -37,9 +38,11 @@ Run the automated checks:
 Then run `caul.py` and try:
 
 1. Say "hello" and check that Caul answers.
-2. Say a short sentence and check that Caul repeats it.
-3. Say "goodbye" and check that Caul exits.
-4. Try again with the microphone unplugged or internet disconnected and note
+2. Say "help" and check that Caul lists its supported actions.
+3. Say "what time is it" and check that Caul reports the time.
+4. Say an unrelated phrase and check that Caul suggests "help".
+5. Say "goodbye" and check that Caul exits.
+6. Try again with the microphone unplugged or internet disconnected and note
    the error before changing anything.
 
 If a check fails, first compare what you heard with the expected behavior,
