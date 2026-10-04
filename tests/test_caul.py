@@ -23,7 +23,7 @@ class StarterCommandTests(unittest.TestCase):
     def test_help_command_lists_supported_actions(self):
         self.assertTrue(respond("help", speaker=self.speaker))
         self.speaker.assert_called_once_with(
-            "I can greet you, tell you the current time, or stop when you say goodbye."
+            "I can greet you, tell you the time, search Google or YouTube, or stop when you say goodbye."
         )
 
     def test_time_command_speaks_the_current_time(self):
@@ -37,6 +37,32 @@ class StarterCommandTests(unittest.TestCase):
         self.speaker.assert_called_once_with(
             "I don't know that command. Say help to hear what I can do."
         )
+
+    def test_google_search_encodes_spaces_and_punctuation(self):
+        browser = Mock()
+        self.assertTrue(
+            respond("search for C++ & cats?", speaker=self.speaker, browser=browser)
+        )
+        browser.assert_called_once_with(
+            "https://www.google.com/search?q=C%2B%2B+%26+cats%3F"
+        )
+        self.speaker.assert_called_once_with("Searching Google for C++ & cats?.")
+
+    def test_youtube_search_encodes_spaces_and_punctuation(self):
+        browser = Mock()
+        self.assertTrue(
+            respond("search YouTube for lo-fi & jazz!", speaker=self.speaker, browser=browser)
+        )
+        browser.assert_called_once_with(
+            "https://www.youtube.com/results?search_query=lo-fi+%26+jazz%21"
+        )
+        self.speaker.assert_called_once_with("Searching YouTube for lo-fi & jazz!.")
+
+    def test_search_without_query_does_not_open_browser(self):
+        browser = Mock()
+        self.assertTrue(respond("search for", speaker=self.speaker, browser=browser))
+        browser.assert_not_called()
+        self.speaker.assert_called_once_with("Tell me what you'd like me to search for.")
 
     def test_empty_phrase_keeps_listening(self):
         self.assertTrue(respond(None, speaker=self.speaker))
