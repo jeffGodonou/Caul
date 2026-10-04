@@ -1,6 +1,6 @@
 # Caul learning roadmap
 
-Build one milestone at a time. The current code is at **Milestone 2**; the
+Build one milestone at a time. The current code is at **Milestone 3**; the
 other features are deliberately not implemented yet. After each milestone,
 run its checks, try it by voice, and fix any failure before continuing.
 
@@ -24,7 +24,7 @@ run its checks, try it by voice, and fix any failure before continuing.
 - **Done when:** each supported phrase has a passing test and unrelated phrases
   get a helpful response.
 
-## Milestone 3 — Search the web and YouTube
+## Milestone 3 — Search the web and YouTube (implemented)
 
 - **Build:** Google searches and YouTube searches, with correctly encoded
   search terms opened in the default browser.
