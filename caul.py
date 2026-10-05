@@ -45,7 +45,7 @@ def listen():
         return None
 
 
-def respond(command, speaker=speak, clock=None, browser=None):
+def respond(command, speaker=speak, clock=None, browser=None, app_launcher=None):
     """Handle supported commands and return False when asked to exit."""
     command = (command or "").strip()
     normalized = command.lower()
@@ -57,7 +57,7 @@ def respond(command, speaker=speak, clock=None, browser=None):
         speaker("Hello! I'm Caul. Say goodbye when you want me to stop.")
         return True
     if normalized in {"help", "what can you do"}:
-        speaker("I can greet you, tell you the time, search Google or YouTube, or stop when you say goodbye.")
+        speaker("I can greet you, tell you the time, search Google or YouTube, open Calculator, Notepad, Google, or YouTube, or stop when you say goodbye.")
         return True
     if normalized in {"time", "what time is it"}:
         current_time = (clock or datetime.now)().strftime("%I:%M %p").lstrip("0")
@@ -92,6 +92,28 @@ def respond(command, speaker=speak, clock=None, browser=None):
             service_name = "YouTube" if service == "youtube" else "Google"
             speaker("Searching " + service_name + " for " + query + ".")
             return True
+    if normalized.startswith("open "):
+        target = normalized[len("open "):].strip()
+        apps = {
+            "calculator": ["calc.exe"],
+            "notepad": ["notepad.exe"],
+        }
+        websites = {
+            "google": "https://www.google.com/",
+            "youtube": "https://www.youtube.com/",
+        }
+        if target in apps:
+            launch = app_launcher if app_launcher is not None else subprocess.Popen
+            launch(apps[target])
+            speaker("Opening " + target.title() + ".")
+            return True
+        if target in websites:
+            open_url = browser if browser is not None else webbrowser.open
+            open_url(websites[target])
+            speaker("Opening " + target.title() + ".")
+            return True
+        speaker("I can only open Calculator, Notepad, Google, or YouTube.")
+        return True
     if command:
         speaker("I don't know that command. Say help to hear what I can do.")
     return True
