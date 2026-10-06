@@ -34,7 +34,7 @@ run its checks, try it by voice, and fix any failure before continuing.
   a browser.
 - **Done when:** the browser opens the expected search URL for both services.
 
-## Milestone 4 — Open approved apps and websites
+## Milestone 4 — Open approved apps and websites (implemented)
 
 - **Build:** an explicit allowlist for a few common apps and websites.
 - **Learn:** dictionaries, process launching, and why spoken input should not
