@@ -23,7 +23,7 @@ class StarterCommandTests(unittest.TestCase):
     def test_help_command_lists_supported_actions(self):
         self.assertTrue(respond("help", speaker=self.speaker))
         self.speaker.assert_called_once_with(
-            "I can greet you, tell you the time, search Google or YouTube, open Calculator, Notepad, Google, or YouTube, or stop when you say goodbye."
+            "I can greet you, tell you the time, search Google or YouTube, check the weather, play music, open Calculator, Notepad, Google, or YouTube, or stop when you say goodbye."
         )
 
     def test_time_command_speaks_the_current_time(self):
@@ -107,6 +107,34 @@ class StarterCommandTests(unittest.TestCase):
         self.speaker.assert_called_once_with(
             "I can only open Calculator, Notepad, Google, or YouTube."
         )
+
+    def test_weather_in_location_searches_google_weather(self):
+        browser = Mock()
+        self.assertTrue(
+            respond("what's the weather in Paris", speaker=self.speaker, browser=browser)
+        )
+        browser.assert_called_once_with(
+            "https://www.google.com/search?q=weather+Paris"
+        )
+        self.speaker.assert_called_once_with("Checking the weather in Paris.")
+
+    def test_weather_without_location_asks_for_location(self):
+        browser = Mock()
+        self.assertTrue(respond("weather", speaker=self.speaker, browser=browser))
+        browser.assert_not_called()
+        self.speaker.assert_called_once_with(
+            "Tell me which location you want the weather for."
+        )
+
+    def test_play_song_opens_spotify_search_with_punctuation(self):
+        browser = Mock()
+        self.assertTrue(
+            respond("play lo-fi & jazz!", speaker=self.speaker, browser=browser)
+        )
+        browser.assert_called_once_with(
+            "https://open.spotify.com/search/lo-fi%20%26%20jazz%21"
+        )
+        self.speaker.assert_called_once_with("Playing lo-fi & jazz! on Spotify.")
 
 
 if __name__ == "__main__":
