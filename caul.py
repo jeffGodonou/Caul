@@ -1,7 +1,7 @@
 import subprocess
 import sys
 from datetime import datetime
-from urllib.parse import urlencode
+from urllib.parse import quote, urlencode
 import webbrowser
 
 def speak(text):
@@ -58,11 +58,14 @@ def respond(command, speaker=speak, clock=None, browser=None, app_launcher=None)
         speaker("Hello! I'm Caul. Say goodbye when you want me to stop.")
         return True
     if normalized in {"help", "what can you do"}:
-        speaker("I can greet you, tell you the time, search Google or YouTube, open Calculator, Notepad, Google, or YouTube, or stop when you say goodbye.")
+        speaker("I can greet you, tell you the time, search Google or YouTube, check the weather, play music, open Calculator, Notepad, Google, or YouTube, or stop when you say goodbye.")
         return True
     if normalized in {"time", "what time is it"}:
         current_time = (clock or datetime.now)().strftime("%I:%M %p").lstrip("0")
         speaker("The current time is " + current_time + ".")
+        return True
+    if normalized in {"weather", "what's the weather", "what is the weather"}:
+        speaker("Tell me which location you want the weather for.")
         return True
     if normalized in {
         "search for",
@@ -93,6 +96,33 @@ def respond(command, speaker=speak, clock=None, browser=None, app_launcher=None)
             service_name = "YouTube" if service == "youtube" else "Google"
             speaker("Searching " + service_name + " for " + query + ".")
             return True
+
+    weather_prefixes = (
+        "weather in ",
+        "what's the weather in ",
+        "what is the weather in ",
+    )
+    for prefix in weather_prefixes:
+        if normalized.startswith(prefix):
+            location = command[len(prefix):].strip()
+            if not location:
+                speaker("Tell me which location you want the weather for.")
+                return True
+            open_url = browser if browser is not None else webbrowser.open
+            open_url("https://www.google.com/search?" + urlencode({"q": "weather " + location}))
+            speaker("Checking the weather in " + location + ".")
+            return True
+
+    if normalized.startswith("play "):
+        song = command[len("play "):].strip()
+        if not song:
+            speaker("What song would you like me to play?")
+            return True
+        open_url = browser if browser is not None else webbrowser.open
+        open_url("https://open.spotify.com/search/" + quote(song, safe=""))
+        speaker("Playing " + song + " on Spotify.")
+        return True
+
     if normalized.startswith("open "):
         target = normalized[len("open "):].strip()
         apps = {
