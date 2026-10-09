@@ -103,15 +103,21 @@ def respond(command, speaker=speak, clock=None, browser=None, app_launcher=None)
             "google": "https://www.google.com/",
             "youtube": "https://www.youtube.com/",
         }
+        labels = {
+            "calculator": "Calculator",
+            "notepad": "Notepad",
+            "google": "Google",
+            "youtube": "YouTube",
+        }
         if target in apps:
             launch = app_launcher if app_launcher is not None else subprocess.Popen
             launch(apps[target])
-            speaker("Opening " + target.title() + ".")
+            speaker("Opening " + labels[target] + ".")
             return True
         if target in websites:
             open_url = browser if browser is not None else webbrowser.open
             open_url(websites[target])
-            speaker("Opening " + target.title() + ".")
+            speaker("Opening " + labels[target] + ".")
             return True
         speaker("I can only open Calculator, Notepad, Google, or YouTube.")
         return True
