@@ -26,6 +26,14 @@ run its checks, try it by voice, and fix any failure before continuing.
 
 ## Milestone 3 — Search the web and YouTube (implemented)
 
+## Milestone 4 — Open approved apps and websites (implemented)
+
+- **Build:** an explicit allowlist for a few common apps and websites.
+- **Learn:** dictionaries, process launching, and why spoken input should not
+  be run as an arbitrary shell command.
+- **Check:** test each allowed target and verify an unrecognized app is refused.
+- **Done when:** only allowlisted targets can be opened.
+
 - **Build:** Google searches and YouTube searches, with correctly encoded
   search terms opened in the default browser.
 - **Learn:** URL encoding, extracting a search query, and injecting browser
@@ -34,7 +42,7 @@ run its checks, try it by voice, and fix any failure before continuing.
   a browser.
 - **Done when:** the browser opens the expected search URL for both services.
 
-## Milestone 4 — Open approved apps and websites (implemented)
+## Milestone 4 — Open approved apps and websites
 
 - **Build:** an explicit allowlist for a few common apps and websites.
 - **Learn:** dictionaries, process launching, and why spoken input should not
