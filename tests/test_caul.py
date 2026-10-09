@@ -64,51 +64,6 @@ class StarterCommandTests(unittest.TestCase):
         browser.assert_not_called()
         self.speaker.assert_called_once_with("Tell me what you'd like me to search for.")
 
-    def test_open_allowlisted_apps_uses_fixed_process_commands(self):
-        launcher = Mock()
-        for phrase, process_args in (
-            ("open calculator", ["calc.exe"]),
-            ("open notepad", ["notepad.exe"]),
-        ):
-            with self.subTest(phrase=phrase):
-                launcher.reset_mock()
-                self.speaker.reset_mock()
-                self.assertTrue(
-                    respond(phrase, speaker=self.speaker, app_launcher=launcher)
-                )
-                launcher.assert_called_once_with(process_args)
-                self.speaker.assert_called_once()
-
-    def test_open_allowlisted_websites_uses_injected_browser(self):
-        browser = Mock()
-        for phrase, url in (
-            ("open google", "https://www.google.com/"),
-            ("open youtube", "https://www.youtube.com/"),
-        ):
-            with self.subTest(phrase=phrase):
-                browser.reset_mock()
-                self.speaker.reset_mock()
-                self.assertTrue(respond(phrase, speaker=self.speaker, browser=browser))
-                browser.assert_called_once_with(url)
-                self.speaker.assert_called_once()
-
-    def test_open_unrecognized_app_is_refused_without_launching(self):
-        launcher = Mock()
-        browser = Mock()
-        self.assertTrue(
-            respond(
-                "open a random app",
-                speaker=self.speaker,
-                browser=browser,
-                app_launcher=launcher,
-            )
-        )
-        launcher.assert_not_called()
-        browser.assert_not_called()
-        self.speaker.assert_called_once_with(
-            "I can only open Calculator, Notepad, Google, or YouTube."
-        )
-
     def test_empty_phrase_keeps_listening(self):
         self.assertTrue(respond(None, speaker=self.speaker))
         self.speaker.assert_not_called()
@@ -116,6 +71,42 @@ class StarterCommandTests(unittest.TestCase):
     def test_goodbye_stops_the_loop(self):
         self.assertFalse(respond("goodbye", speaker=self.speaker))
         self.speaker.assert_called_once_with("Goodbye!")
+
+    def test_open_calculator_runs_allowlisted_app(self):
+        launcher = Mock()
+        self.assertTrue(respond("open calculator", speaker=self.speaker, app_launcher=launcher))
+        launcher.assert_called_once_with(["calc.exe"])
+        self.speaker.assert_called_once_with("Opening Calculator.")
+
+    def test_open_google_opens_allowlisted_website(self):
+        browser = Mock()
+        self.assertTrue(respond("open google", speaker=self.speaker, browser=browser))
+        browser.assert_called_once_with("https://www.google.com/")
+        self.speaker.assert_called_once_with("Opening Google.")
+
+    def test_open_youtube_opens_allowlisted_website(self):
+        browser = Mock()
+        self.assertTrue(respond("open youtube", speaker=self.speaker, browser=browser))
+        browser.assert_called_once_with("https://www.youtube.com/")
+        self.speaker.assert_called_once_with("Opening YouTube.")
+
+    def test_open_notepad_runs_allowlisted_app(self):
+        launcher = Mock()
+        self.assertTrue(respond("open notepad", speaker=self.speaker, app_launcher=launcher))
+        launcher.assert_called_once_with(["notepad.exe"])
+        self.speaker.assert_called_once_with("Opening Notepad.")
+
+    def test_open_unknown_target_is_refused(self):
+        browser = Mock()
+        launcher = Mock()
+        self.assertTrue(
+            respond("open chrome", speaker=self.speaker, browser=browser, app_launcher=launcher)
+        )
+        browser.assert_not_called()
+        launcher.assert_not_called()
+        self.speaker.assert_called_once_with(
+            "I can only open Calculator, Notepad, Google, or YouTube."
+        )
 
 
 if __name__ == "__main__":
