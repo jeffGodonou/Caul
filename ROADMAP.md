@@ -1,6 +1,6 @@
 # Caul learning roadmap
 
-Build one milestone at a time. The current code is at **Milestone 3**; the
+Build one milestone at a time. The current code is at **Milestone 5**; the
 other features are deliberately not implemented yet. After each milestone,
 run its checks, try it by voice, and fix any failure before continuing.
 
@@ -26,14 +26,6 @@ run its checks, try it by voice, and fix any failure before continuing.
 
 ## Milestone 3 — Search the web and YouTube (implemented)
 
-## Milestone 4 — Open approved apps and websites (implemented)
-
-- **Build:** an explicit allowlist for a few common apps and websites.
-- **Learn:** dictionaries, process launching, and why spoken input should not
-  be run as an arbitrary shell command.
-- **Check:** test each allowed target and verify an unrecognized app is refused.
-- **Done when:** only allowlisted targets can be opened.
-
 - **Build:** Google searches and YouTube searches, with correctly encoded
   search terms opened in the default browser.
 - **Learn:** URL encoding, extracting a search query, and injecting browser
@@ -42,7 +34,7 @@ run its checks, try it by voice, and fix any failure before continuing.
   a browser.
 - **Done when:** the browser opens the expected search URL for both services.
 
-## Milestone 4 — Open approved apps and websites
+## Milestone 4 — Open approved apps and websites (implemented)
 
 - **Build:** an explicit allowlist for a few common apps and websites.
 - **Learn:** dictionaries, process launching, and why spoken input should not
@@ -50,7 +42,7 @@ run its checks, try it by voice, and fix any failure before continuing.
 - **Check:** test each allowed target and verify an unrecognized app is refused.
 - **Done when:** only allowlisted targets can be opened.
 
-## Milestone 5 — Weather and music
+## Milestone 5 — Weather and music (implemented)
 
 - **Build:** location-aware weather search and Spotify music search.
 - **Learn:** extracting optional details from commands and building URLs safely.
