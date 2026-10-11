@@ -20,19 +20,54 @@ def speak(text):
     engine.runAndWait()
 
 
+def _record(sr, timeout=5, phrase_time_limit=8, rate=16000):
+    """Record one phrase with sounddevice (no PyAudio needed); None if silent."""
+    import time
+
+    import numpy as np
+    import sounddevice as sd
+
+    block = int(rate * 0.1)
+    chunks = []
+    print("Listening...")
+    with sd.InputStream(samplerate=rate, channels=1, dtype="int16", blocksize=block) as stream:
+        noise = np.sqrt(np.mean(stream.read(block * 5)[0].astype(np.float64) ** 2))
+        threshold = max(noise * 3, 40)
+        started = time.monotonic()
+        speech_start = None
+        quiet = 0
+        while True:
+            data = stream.read(block)[0]
+            loud = np.sqrt(np.mean(data.astype(np.float64) ** 2)) > threshold
+            now = time.monotonic()
+            if speech_start is None:
+                if loud:
+                    speech_start = now
+                    chunks.append(data.copy())
+                elif now - started > timeout:
+                    return None
+                continue
+            chunks.append(data.copy())
+            quiet = 0 if loud else quiet + 1
+            if quiet >= 8 or now - speech_start > phrase_time_limit:
+                break
+    audio = np.concatenate(chunks).astype(np.float64)
+    peak = np.abs(audio).max()
+    if peak > 0:
+        audio *= min(20000 / peak, 100)
+    return sr.AudioData(audio.astype(np.int16).tobytes(), rate, 2)
+
+
 def listen():
+
     """Listen once and return recognized words, or None if they were unclear."""
     from importlib import import_module
 
     sr = import_module("speech_recognition")
 
     recognizer = sr.Recognizer()
-    try:
-        with sr.Microphone() as microphone:
-            recognizer.adjust_for_ambient_noise(microphone, duration=0.5)
-            print("Listening...")
-            audio = recognizer.listen(microphone, timeout=5, phrase_time_limit=8)
-    except sr.WaitTimeoutError:
+    audio = _record(sr)
+    if audio is None:
         return None
 
     try:
