@@ -1,8 +1,52 @@
+import ast
+import math
+import operator
+import random
 import subprocess
 import sys
 from datetime import datetime
 from urllib.parse import quote, urlencode
 import webbrowser
+
+
+def calculate(expression):
+    """Evaluate a basic arithmetic expression without executing arbitrary code."""
+    expression = expression.lower().replace("divided by", "/")
+    expression = expression.replace("multiplied by", "*")
+    expression = expression.replace("times", "*")
+    expression = expression.replace("plus", "+")
+    expression = expression.replace("minus", "-")
+    tree = ast.parse(expression, mode="eval")
+    operations = {
+        ast.Add: operator.add,
+        ast.Sub: operator.sub,
+        ast.Mult: operator.mul,
+        ast.Div: operator.truediv,
+    }
+
+    def evaluate(node):
+        if isinstance(node, ast.Expression):
+            return evaluate(node.body)
+        if isinstance(node, ast.Constant) and isinstance(node.value, (int, float)):
+            return node.value
+        if isinstance(node, ast.UnaryOp) and isinstance(node.op, (ast.UAdd, ast.USub)):
+            value = evaluate(node.operand)
+            return value if isinstance(node.op, ast.UAdd) else -value
+        if isinstance(node, ast.BinOp) and type(node.op) in operations:
+            left = evaluate(node.left)
+            right = evaluate(node.right)
+            return operations[type(node.op)](left, right)
+        raise ValueError("Only basic arithmetic is supported.")
+
+    result = evaluate(tree)
+    if not isinstance(result, (int, float)) or not math.isfinite(result):
+        raise ValueError("The result is not a finite number.")
+    return result
+
+
+def _format_number(value):
+    return str(int(value)) if value == int(value) else str(value)
+
 
 def speak(text):
     """Say text through the computer's local text-to-speech voice."""
@@ -81,7 +125,14 @@ def listen():
         return None
 
 
-def respond(command, speaker=speak, clock=None, browser=None, app_launcher=None):
+def respond(
+    command,
+    speaker=speak,
+    clock=None,
+    browser=None,
+    app_launcher=None,
+    random_choice=random.choice,
+):
     """Handle supported commands and return False when asked to exit."""
     command = (command or "").strip()
     normalized = command.lower()
@@ -93,7 +144,7 @@ def respond(command, speaker=speak, clock=None, browser=None, app_launcher=None)
         speaker("Hello! I'm Caul. Say goodbye when you want me to stop.")
         return True
     if normalized in {"help", "what can you do"}:
-        speaker("I can greet you, tell you the time, search Google or YouTube, check the weather, play music, open Calculator, Notepad, Google, or YouTube, or stop when you say goodbye.")
+        speaker("I can greet you, tell you the time, calculate basic arithmetic, play rock-paper-scissors, search Google or YouTube, check the weather, play music, open Calculator, Notepad, Google, or YouTube, or stop when you say goodbye.")
         return True
     if normalized in {"time", "what time is it"}:
         current_time = (clock or datetime.now)().strftime("%I:%M %p").lstrip("0")
@@ -109,6 +160,50 @@ def respond(command, speaker=speak, clock=None, browser=None, app_launcher=None)
         "youtube search for",
     }:
         speaker("Tell me what you'd like me to search for.")
+        return True
+
+    calculation = command
+    for prefix in ("calculate ", "what is ", "what's "):
+        if normalized.startswith(prefix):
+            calculation = command[len(prefix):].strip()
+            break
+    is_weather_request = normalized.startswith(
+        ("what's the weather", "what is the weather")
+    )
+    if not is_weather_request and (
+        calculation != command or normalized.startswith(("calculate", "what is", "what's"))
+    ):
+        if not calculation:
+            speaker("Tell me what you'd like me to calculate.")
+            return True
+        try:
+            result = calculate(calculation)
+        except (SyntaxError, ValueError, TypeError, ZeroDivisionError):
+            speaker("I can only calculate basic arithmetic, such as 2 plus 2.")
+            return True
+        speaker("The answer is " + _format_number(result) + ".")
+        return True
+
+    if normalized.startswith("rock paper scissors"):
+        move = normalized[len("rock paper scissors"):].strip()
+        if not move:
+            speaker("Choose rock, paper, or scissors.")
+            return True
+        if move not in {"rock", "paper", "scissors"}:
+            speaker("That is not a valid move. Choose rock, paper, or scissors.")
+            return True
+        computer_move = random_choice(["rock", "paper", "scissors"])
+        if move == computer_move:
+            outcome = "It's a tie."
+        elif (move, computer_move) in {
+            ("rock", "scissors"),
+            ("paper", "rock"),
+            ("scissors", "paper"),
+        }:
+            outcome = "You win!"
+        else:
+            outcome = "I win!"
+        speaker("You chose " + move + ". I chose " + computer_move + ". " + outcome)
         return True
     search_prefixes = (
         ("search youtube for ", "youtube"),
