@@ -2,7 +2,7 @@ import unittest
 from datetime import datetime
 from unittest.mock import Mock
 
-from caul import respond
+from caul import calculate, respond
 
 
 class StarterCommandTests(unittest.TestCase):
@@ -23,7 +23,7 @@ class StarterCommandTests(unittest.TestCase):
     def test_help_command_lists_supported_actions(self):
         self.assertTrue(respond("help", speaker=self.speaker))
         self.speaker.assert_called_once_with(
-            "I can greet you, tell you the time, search Google or YouTube, check the weather, play music, open Calculator, Notepad, Google, or YouTube, or stop when you say goodbye."
+            "I can greet you, tell you the time, calculate basic arithmetic, play rock-paper-scissors, search Google or YouTube, check the weather, play music, open Calculator, Notepad, Google, or YouTube, or stop when you say goodbye."
         )
 
     def test_time_command_speaks_the_current_time(self):
@@ -135,6 +135,81 @@ class StarterCommandTests(unittest.TestCase):
             "https://open.spotify.com/search/lo-fi%20%26%20jazz%21"
         )
         self.speaker.assert_called_once_with("Playing lo-fi & jazz! on Spotify.")
+
+    def test_calculate_supports_basic_operations(self):
+        self.assertEqual(calculate("2 plus 3 * 4"), 14)
+
+    def test_calculate_command_speaks_result(self):
+        self.assertTrue(respond("calculate 12 divided by 3", speaker=self.speaker))
+        self.speaker.assert_called_once_with("The answer is 4.")
+
+    def test_calculate_supports_decimal_results(self):
+        self.assertTrue(respond("what is 5 minus 2.5", speaker=self.speaker))
+        self.speaker.assert_called_once_with("The answer is 2.5.")
+
+    def test_calculate_invalid_input_does_not_crash(self):
+        self.assertTrue(respond("calculate launch missiles", speaker=self.speaker))
+        self.speaker.assert_called_once_with(
+            "I can only calculate basic arithmetic, such as 2 plus 2."
+        )
+
+    def test_calculate_division_by_zero_does_not_crash(self):
+        self.assertTrue(respond("calculate 8 divided by 0", speaker=self.speaker))
+        self.speaker.assert_called_once_with(
+            "I can only calculate basic arithmetic, such as 2 plus 2."
+        )
+
+    def test_rock_paper_scissors_reports_win(self):
+        random_choice = Mock(return_value="scissors")
+        self.assertTrue(
+            respond(
+                "rock paper scissors rock",
+                speaker=self.speaker,
+                random_choice=random_choice,
+            )
+        )
+        random_choice.assert_called_once_with(["rock", "paper", "scissors"])
+        self.speaker.assert_called_once_with(
+            "You chose rock. I chose scissors. You win!"
+        )
+
+    def test_rock_paper_scissors_reports_tie(self):
+        self.assertTrue(
+            respond(
+                "rock paper scissors paper",
+                speaker=self.speaker,
+                random_choice=Mock(return_value="paper"),
+            )
+        )
+        self.speaker.assert_called_once_with(
+            "You chose paper. I chose paper. It's a tie."
+        )
+
+    def test_rock_paper_scissors_reports_loss(self):
+        self.assertTrue(
+            respond(
+                "rock paper scissors scissors",
+                speaker=self.speaker,
+                random_choice=Mock(return_value="rock"),
+            )
+        )
+        self.speaker.assert_called_once_with(
+            "You chose scissors. I chose rock. I win!"
+        )
+
+    def test_rock_paper_scissors_rejects_unknown_move(self):
+        random_choice = Mock()
+        self.assertTrue(
+            respond(
+                "rock paper scissors lizard",
+                speaker=self.speaker,
+                random_choice=random_choice,
+            )
+        )
+        random_choice.assert_not_called()
+        self.speaker.assert_called_once_with(
+            "That is not a valid move. Choose rock, paper, or scissors."
+        )
 
 
 if __name__ == "__main__":
