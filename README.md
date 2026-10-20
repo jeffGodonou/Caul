@@ -7,8 +7,9 @@ before moving on.
 ## Step 5: weather and music
 
 This version listens for one phrase at a time, greets you, responds to "help",
-"what time is it", search commands, weather lookups, and music requests, and
-allows only approved apps or sites when you say "open". It refuses
+"what time is it", basic arithmetic, rock-paper-scissors, search commands,
+weather lookups, and music requests, and allows only approved apps or sites
+when you say "open". It refuses
 unrecognized targets, keeps the browser and app launcher injectable for tests,
 and exits when you say "goodbye", "quit", or "exit". Other phrases get a
 helpful unknown-command response. It is intentionally small; games and other
@@ -44,8 +45,10 @@ Then run `caul.py` and try:
 3. Say "weather" and check that Caul asks for a location.
 4. Say "play lo-fi & jazz!" and check that Spotify search opens.
 5. Say "open calculator" and check that the calculator opens.
-6. Say "goodbye" and check that Caul exits.
-7. Try again with the microphone unplugged or internet disconnected and note
+6. Say "calculate 12 divided by 3" and check that Caul says 4.
+7. Say "rock paper scissors rock" and check that Caul reports the outcome.
+8. Say "goodbye" and check that Caul exits.
+9. Try again with the microphone unplugged or internet disconnected and note
    the error before changing anything.
 
 If a check fails, first compare what you heard with the expected behavior,

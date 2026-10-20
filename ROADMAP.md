@@ -1,6 +1,6 @@
 # Caul learning roadmap
 
-Build one milestone at a time. The current code is at **Milestone 5**; the
+Build one milestone at a time. The current code is at **Milestone 6**; the
 other features are deliberately not implemented yet. After each milestone,
 run its checks, try it by voice, and fix any failure before continuing.
 
@@ -51,7 +51,7 @@ run its checks, try it by voice, and fix any failure before continuing.
 - **Done when:** each request opens a useful result and Caul describes what it
   did.
 
-## Milestone 6 — Calculator and a game
+## Milestone 6 — Calculator and a game (implemented)
 
 - **Build:** basic spoken arithmetic and rock-paper-scissors.
 - **Learn:** parsing, input validation, numeric edge cases, and random choices.
