@@ -1,13 +1,114 @@
 import unittest
+import logging
+from contextlib import redirect_stderr
 from datetime import datetime
-from unittest.mock import Mock
+from io import StringIO
+from types import SimpleNamespace
+from unittest.mock import Mock, patch
 
-from caul import calculate, respond
+from caul import (
+    MicrophoneError,
+    Settings,
+    _record,
+    calculate,
+    load_settings,
+    listen,
+    main,
+    respond,
+)
 
 
 class StarterCommandTests(unittest.TestCase):
     def setUp(self):
         self.speaker = Mock()
+
+    def test_settings_use_safe_defaults(self):
+        self.assertEqual(load_settings({}), Settings())
+
+    def test_settings_read_microphone_and_audio_options(self):
+        settings = load_settings(
+            {
+                "CAUL_MICROPHONE_DEVICE": "2",
+                "CAUL_LISTEN_TIMEOUT": "3.5",
+                "CAUL_PHRASE_TIME_LIMIT": "6",
+                "CAUL_SAMPLE_RATE": "22050",
+                "CAUL_LOG_LEVEL": "INFO",
+            }
+        )
+        self.assertEqual(
+            settings,
+            Settings(
+                microphone_device=2,
+                listen_timeout=3.5,
+                phrase_time_limit=6,
+                sample_rate=22050,
+                log_level=logging.INFO,
+            ),
+        )
+
+    def test_settings_reject_invalid_values(self):
+        for name, value in (
+            ("CAUL_MICROPHONE_DEVICE", "default"),
+            ("CAUL_MICROPHONE_DEVICE", "-1"),
+            ("CAUL_LISTEN_TIMEOUT", "0"),
+            ("CAUL_LISTEN_TIMEOUT", "nan"),
+            ("CAUL_PHRASE_TIME_LIMIT", "inf"),
+            ("CAUL_SAMPLE_RATE", "fast"),
+            ("CAUL_LOG_LEVEL", "VERBOSE"),
+        ):
+            with self.subTest(name=name, value=value):
+                with self.assertRaises(ValueError):
+                    load_settings({name: value})
+
+    def test_portaudio_device_errors_become_clear_microphone_errors(self):
+        port_audio_error = type("PortAudioError", (Exception,), {})
+        sounddevice = SimpleNamespace(
+            PortAudioError=port_audio_error,
+            InputStream=Mock(side_effect=port_audio_error("no input device")),
+        )
+        with patch.dict("sys.modules", {"numpy": Mock(), "sounddevice": sounddevice}):
+            with self.assertRaisesRegex(MicrophoneError, "no input device"):
+                _record(None, Settings())
+
+    @patch("caul.speak")
+    @patch("caul._record", return_value="audio")
+    @patch("caul.import_module")
+    def test_listen_reports_network_error_and_returns_to_loop(
+        self, import_module, record, speaker
+    ):
+        recognition = SimpleNamespace(
+            Recognizer=Mock(return_value=SimpleNamespace(
+                recognize_google=Mock(side_effect=RuntimeError("unused"))
+            )),
+            UnknownValueError=type("UnknownValueError", (Exception,), {}),
+            RequestError=type("RequestError", (Exception,), {}),
+        )
+        recognition.Recognizer.return_value.recognize_google.side_effect = (
+            recognition.RequestError("offline")
+        )
+        import_module.return_value = recognition
+
+        self.assertIsNone(listen(Settings()))
+        speaker.assert_called_once_with(
+            "I can't reach the speech recognition service right now."
+        )
+        record.assert_called_once_with(recognition, Settings())
+        import_module.assert_called_once_with("speech_recognition")
+
+    @patch("caul.speak")
+    @patch("caul.listen", side_effect=OSError("no input device"))
+    def test_main_reports_microphone_failure_without_crashing(self, listen_once, speaker):
+        stderr = StringIO()
+        with redirect_stderr(stderr), self.assertLogs("caul", level="ERROR"):
+            main(Settings())
+        self.assertIn("Caul audio/setup error: no input device", stderr.getvalue())
+        speaker.assert_called_once_with("Caul is ready. Say hello, or say goodbye to stop.")
+
+    @patch("caul.speak")
+    @patch("caul.listen", side_effect=[None, "goodbye"])
+    def test_main_keeps_listening_after_unclear_audio(self, listen_once, speaker):
+        main(Settings())
+        self.assertEqual(listen_once.call_count, 2)
 
     def test_greeting_gets_a_response(self):
         self.assertTrue(respond("hello", speaker=self.speaker))
