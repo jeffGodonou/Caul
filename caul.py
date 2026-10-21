@@ -1,12 +1,71 @@
 import ast
+import logging
 import math
 import operator
+import os
 import random
 import subprocess
 import sys
+from dataclasses import dataclass
 from datetime import datetime
+from importlib import import_module
+from typing import Optional
 from urllib.parse import quote, urlencode
 import webbrowser
+
+
+logger = logging.getLogger("caul")
+
+
+class MicrophoneError(OSError):
+    """A microphone device could not be opened or read."""
+
+
+@dataclass(frozen=True)
+class Settings:
+    microphone_device: Optional[int] = None
+    listen_timeout: float = 5
+    phrase_time_limit: float = 8
+    sample_rate: int = 16000
+    log_level: int = logging.WARNING
+
+
+def load_settings(environ=None):
+    """Read and validate optional Caul settings from environment variables."""
+    environ = os.environ if environ is None else environ
+
+    def positive_number(name, default, convert):
+        value = environ.get(name)
+        if value is None:
+            return default
+        try:
+            parsed = convert(value)
+        except ValueError as error:
+            raise ValueError(name + " must be a positive number.") from error
+        if parsed <= 0 or not math.isfinite(parsed):
+            raise ValueError(name + " must be a positive finite number.")
+        return parsed
+
+    device_value = environ.get("CAUL_MICROPHONE_DEVICE", "").strip()
+    try:
+        microphone_device = int(device_value) if device_value else None
+    except ValueError as error:
+        raise ValueError("CAUL_MICROPHONE_DEVICE must be a device number.") from error
+    if microphone_device is not None and microphone_device < 0:
+        raise ValueError("CAUL_MICROPHONE_DEVICE must not be negative.")
+
+    level_name = environ.get("CAUL_LOG_LEVEL", "WARNING").upper()
+    log_level = logging.getLevelName(level_name)
+    if not isinstance(log_level, int):
+        raise ValueError("CAUL_LOG_LEVEL must be DEBUG, INFO, WARNING, ERROR, or CRITICAL.")
+
+    return Settings(
+        microphone_device=microphone_device,
+        listen_timeout=positive_number("CAUL_LISTEN_TIMEOUT", 5, float),
+        phrase_time_limit=positive_number("CAUL_PHRASE_TIME_LIMIT", 8, float),
+        sample_rate=positive_number("CAUL_SAMPLE_RATE", 16000, int),
+        log_level=log_level,
+    )
 
 
 def calculate(expression):
@@ -64,37 +123,50 @@ def speak(text):
     engine.runAndWait()
 
 
-def _record(sr, timeout=5, phrase_time_limit=8, rate=16000):
+def _record(sr, settings=None):
     """Record one phrase with sounddevice (no PyAudio needed); None if silent."""
     import time
 
     import numpy as np
     import sounddevice as sd
 
+    settings = settings or load_settings()
+    timeout = settings.listen_timeout
+    phrase_time_limit = settings.phrase_time_limit
+    rate = settings.sample_rate
     block = int(rate * 0.1)
     chunks = []
     print("Listening...")
-    with sd.InputStream(samplerate=rate, channels=1, dtype="int16", blocksize=block) as stream:
-        noise = np.sqrt(np.mean(stream.read(block * 5)[0].astype(np.float64) ** 2))
-        threshold = max(noise * 3, 40)
-        started = time.monotonic()
-        speech_start = None
-        quiet = 0
-        while True:
-            data = stream.read(block)[0]
-            loud = np.sqrt(np.mean(data.astype(np.float64) ** 2)) > threshold
-            now = time.monotonic()
-            if speech_start is None:
-                if loud:
-                    speech_start = now
-                    chunks.append(data.copy())
-                elif now - started > timeout:
-                    return None
-                continue
-            chunks.append(data.copy())
-            quiet = 0 if loud else quiet + 1
-            if quiet >= 8 or now - speech_start > phrase_time_limit:
-                break
+    try:
+        with sd.InputStream(
+            samplerate=rate,
+            channels=1,
+            dtype="int16",
+            blocksize=block,
+            device=settings.microphone_device,
+        ) as stream:
+            noise = np.sqrt(np.mean(stream.read(block * 5)[0].astype(np.float64) ** 2))
+            threshold = max(noise * 3, 40)
+            started = time.monotonic()
+            speech_start = None
+            quiet = 0
+            while True:
+                data = stream.read(block)[0]
+                loud = np.sqrt(np.mean(data.astype(np.float64) ** 2)) > threshold
+                now = time.monotonic()
+                if speech_start is None:
+                    if loud:
+                        speech_start = now
+                        chunks.append(data.copy())
+                    elif now - started > timeout:
+                        return None
+                    continue
+                chunks.append(data.copy())
+                quiet = 0 if loud else quiet + 1
+                if quiet >= 8 or now - speech_start > phrase_time_limit:
+                    break
+    except (OSError, sd.PortAudioError) as error:
+        raise MicrophoneError("Could not access the microphone: " + str(error)) from error
     audio = np.concatenate(chunks).astype(np.float64)
     peak = np.abs(audio).max()
     if peak > 0:
@@ -102,15 +174,13 @@ def _record(sr, timeout=5, phrase_time_limit=8, rate=16000):
     return sr.AudioData(audio.astype(np.int16).tobytes(), rate, 2)
 
 
-def listen():
-
+def listen(settings=None):
     """Listen once and return recognized words, or None if they were unclear."""
-    from importlib import import_module
-
+    settings = settings or load_settings()
     sr = import_module("speech_recognition")
 
     recognizer = sr.Recognizer()
-    audio = _record(sr)
+    audio = _record(sr, settings)
     if audio is None:
         return None
 
@@ -120,7 +190,12 @@ def listen():
         speak("I didn't catch that. Please try again.")
         return None
     except sr.RequestError as error:
-        print("Speech recognition service error:", error, file=sys.stderr)
+        logger.warning("Speech recognition service error: %s", error)
+        print(
+            "Speech recognition is unavailable. Check your internet connection; "
+            "Caul will keep listening.",
+            file=sys.stderr,
+        )
         speak("I can't reach the speech recognition service right now.")
         return None
 
@@ -286,18 +361,27 @@ def respond(
     return True
 
 
-def main():
-    speak("Caul is ready. Say hello, or say goodbye to stop.")
+def main(settings=None):
     try:
+        settings = settings or load_settings()
+        logging.basicConfig(
+            level=settings.log_level,
+            format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+        )
+        speak("Caul is ready. Say hello, or say goodbye to stop.")
         while True:
-            command = listen()
+            command = listen(settings)
             if command is not None and not respond(command):
                 break
     except KeyboardInterrupt:
         speak("Goodbye!")
-    except (OSError, ImportError) as error:
-        print("Microphone or audio setup error:", error, file=sys.stderr)
-        print("Check the setup steps in README.md.", file=sys.stderr)
+    except (OSError, ImportError, RuntimeError, ValueError) as error:
+        logger.exception("Caul could not start or access its audio devices.")
+        print("Caul audio/setup error:", error, file=sys.stderr)
+        print(
+            "Check the setup and microphone troubleshooting steps in README.md.",
+            file=sys.stderr,
+        )
 
 
 if __name__ == "__main__":
