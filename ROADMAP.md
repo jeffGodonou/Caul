@@ -1,7 +1,6 @@
 # Caul learning roadmap
 
-Build one milestone at a time. The current code is at **Milestone 6**; the
-other features are deliberately not implemented yet. After each milestone,
+Build one milestone at a time. The current code is at **Milestone 7**. After each milestone,
 run its checks, try it by voice, and fix any failure before continuing.
 
 ## Milestone 1 — Hear and speak (implemented)
@@ -59,15 +58,16 @@ run its checks, try it by voice, and fix any failure before continuing.
   outcomes, and unrecognized moves.
 - **Done when:** invalid input never crashes the listening loop.
 
-## Milestone 7 — Make it dependable
+## Milestone 7 — Make it dependable (implemented)
 
-- **Build:** settings, clearer recovery from microphone/network failures,
-  optional logging, and startup instructions suited to your computer.
+- **Build:** environment-based audio settings, clearer recovery from
+  microphone/network failures, optional logging, and Windows startup
+  instructions.
 - **Learn:** configuration, error boundaries, and packaging a small Python app.
 - **Check:** exercise a missing microphone, unavailable internet, and normal
   startup; run the full test suite after each change.
 - **Done when:** setup and recovery instructions have been tested on your
-  computer.
+  computer. Run the setup checks in the README to verify them on this device.
 
 ## A repeatable build-and-correct cycle
 
