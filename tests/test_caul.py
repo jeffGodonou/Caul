@@ -70,6 +70,47 @@ class StarterCommandTests(unittest.TestCase):
             with self.assertRaisesRegex(MicrophoneError, "no input device"):
                 _record(None, Settings())
 
+    @patch("caul._record", return_value="audio")
+    @patch("caul.import_module")
+    def test_listen_returns_recognized_words_without_surrounding_spaces(
+        self, import_module, record
+    ):
+        recognition = SimpleNamespace(
+            Recognizer=Mock(
+                return_value=SimpleNamespace(
+                    recognize_google=Mock(return_value="  hello  ")
+                )
+            )
+        )
+        import_module.return_value = recognition
+
+        self.assertEqual(listen(Settings()), "hello")
+        record.assert_called_once_with(recognition, Settings())
+        import_module.assert_called_once_with("speech_recognition")
+
+    @patch("caul.speak")
+    @patch("caul._record", return_value="audio")
+    @patch("caul.import_module")
+    def test_listen_prompts_again_when_speech_is_unclear(
+        self, import_module, record, speaker
+    ):
+        unknown_value_error = type("UnknownValueError", (Exception,), {})
+        recognition = SimpleNamespace(
+            Recognizer=Mock(
+                return_value=SimpleNamespace(
+                    recognize_google=Mock(
+                        side_effect=unknown_value_error("unclear audio")
+                    )
+                )
+            ),
+            UnknownValueError=unknown_value_error,
+        )
+        import_module.return_value = recognition
+
+        self.assertIsNone(listen(Settings()))
+        speaker.assert_called_once_with("I didn't catch that. Please try again.")
+        record.assert_called_once_with(recognition, Settings())
+
     @patch("caul.speak")
     @patch("caul._record", return_value="audio")
     @patch("caul.import_module")
@@ -109,6 +150,25 @@ class StarterCommandTests(unittest.TestCase):
     def test_main_keeps_listening_after_unclear_audio(self, listen_once, speaker):
         main(Settings())
         self.assertEqual(listen_once.call_count, 2)
+
+    @patch("caul.speak")
+    @patch("caul.listen", return_value="goodbye")
+    def test_main_stops_listening_after_goodbye(self, listen_once, speaker):
+        with patch(
+            "caul.respond",
+            side_effect=lambda command: respond(command, speaker=speaker),
+        ):
+            main(Settings())
+        listen_once.assert_called_once_with(Settings())
+        self.assertEqual(
+            speaker.call_args_list,
+            [
+                unittest.mock.call(
+                    "Caul is ready. Say hello, or say goodbye to stop."
+                ),
+                unittest.mock.call("Goodbye!"),
+            ],
+        )
 
     def test_greeting_gets_a_response(self):
         self.assertTrue(respond("hello", speaker=self.speaker))
