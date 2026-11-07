@@ -23,8 +23,19 @@ py -m venv .venv
 .\.venv\Scripts\python.exe caul.py
 ```
 
-Speech recognition sends audio to Google's service and requires an internet
-connection. Caul speaks using your computer's local text-to-speech engine.
+Speech recognition runs locally with [Vosk](https://alphacephei.com/vosk/) —
+your audio never leaves the computer, and no internet connection is needed to
+understand you. Caul speaks using your computer's local text-to-speech engine.
+An internet connection is only needed when a command opens a web page.
+
+The first time you set up the project, download the small English model
+(about 40 MB) into the `models` folder:
+
+```powershell
+curl.exe -L -o "$env:TEMP\vosk-model.zip" "https://alphacephei.com/vosk/models/vosk-model-small-en-us-0.15.zip"
+Expand-Archive "$env:TEMP\vosk-model.zip" models
+Remove-Item "$env:TEMP\vosk-model.zip"
+```
 
 ### Settings and troubleshooting
 
@@ -47,12 +58,14 @@ environment settings can be set in PowerShell before starting Caul:
 | `CAUL_PHRASE_TIME_LIMIT` | `8` | Maximum seconds recorded per phrase |
 | `CAUL_SAMPLE_RATE` | `16000` | Microphone sample rate in Hz |
 | `CAUL_LOG_LEVEL` | `WARNING` | Optional diagnostics: `DEBUG`, `INFO`, `WARNING`, `ERROR`, or `CRITICAL` |
+| `CAUL_VOSK_MODEL` | `models/vosk-model-small-en-us-0.15` | Path to the Vosk speech model |
 
 If Windows reports that no input device is available, connect or enable a
 microphone in Windows Sound settings, select its device number as shown above,
-and restart Caul. If speech recognition cannot reach Google, check the internet
-connection; Caul explains the issue and continues listening so you can retry.
-Use `CAUL_LOG_LEVEL=INFO` to see diagnostic messages. Caul does not log spoken
+and restart Caul. If Caul reports that the Vosk model is missing, run the
+download commands above or point `CAUL_VOSK_MODEL` at an unpacked model from
+the [Vosk model list](https://alphacephei.com/vosk/models). Use
+`CAUL_LOG_LEVEL=INFO` to see diagnostic messages. Caul does not log spoken
 phrases.
 
 ### Check milestone 7
@@ -73,8 +86,9 @@ Then start Caul and try:
 6. Say "calculate 12 divided by 3" and check that Caul says 4.
 7. Say "rock paper scissors rock" and check that Caul reports the outcome.
 8. Say "goodbye" and check that Caul exits.
-9. Disconnect from the internet, try a phrase, and confirm Caul explains the
-   issue and keeps listening. Reconnect and try again.
+9. Disconnect from the internet and say "hello" — recognition is offline, so
+   Caul should still answer. Web commands will open pages that cannot load
+   until you reconnect.
 10. If practical, select an unavailable microphone device and confirm Caul
     reports the setup problem and exits cleanly. Restore the working device
     setting before starting Caul again.
