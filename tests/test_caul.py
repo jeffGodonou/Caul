@@ -9,6 +9,7 @@ from unittest.mock import Mock, patch
 from caul import (
     MicrophoneError,
     Settings,
+    _recognize,
     _record,
     calculate,
     load_settings,
@@ -33,6 +34,7 @@ class StarterCommandTests(unittest.TestCase):
                 "CAUL_PHRASE_TIME_LIMIT": "6",
                 "CAUL_SAMPLE_RATE": "22050",
                 "CAUL_LOG_LEVEL": "INFO",
+                "CAUL_VOSK_MODEL": "D:/models/vosk",
             }
         )
         self.assertEqual(
@@ -43,6 +45,7 @@ class StarterCommandTests(unittest.TestCase):
                 phrase_time_limit=6,
                 sample_rate=22050,
                 log_level=logging.INFO,
+                vosk_model="D:/models/vosk",
             ),
         )
 
@@ -68,73 +71,34 @@ class StarterCommandTests(unittest.TestCase):
         )
         with patch.dict("sys.modules", {"numpy": Mock(), "sounddevice": sounddevice}):
             with self.assertRaisesRegex(MicrophoneError, "no input device"):
-                _record(None, Settings())
+                _record(Settings())
 
-    @patch("caul._record", return_value="audio")
-    @patch("caul.import_module")
-    def test_listen_returns_recognized_words_without_surrounding_spaces(
-        self, import_module, record
-    ):
-        recognition = SimpleNamespace(
-            Recognizer=Mock(
-                return_value=SimpleNamespace(
-                    recognize_google=Mock(return_value="  hello  ")
-                )
-            )
-        )
-        import_module.return_value = recognition
-
-        self.assertEqual(listen(Settings()), "hello")
-        record.assert_called_once_with(recognition, Settings())
-        import_module.assert_called_once_with("speech_recognition")
+    @patch("caul._recognize", return_value="hello")
+    @patch("caul._record", return_value=b"pcm")
+    def test_listen_returns_recognized_text(self, record, recognize):
+        settings = Settings()
+        self.assertEqual(listen(settings), "hello")
+        record.assert_called_once_with(settings)
+        recognize.assert_called_once_with(b"pcm", settings)
 
     @patch("caul.speak")
-    @patch("caul._record", return_value="audio")
-    @patch("caul.import_module")
-    def test_listen_prompts_again_when_speech_is_unclear(
-        self, import_module, record, speaker
+    @patch("caul._recognize", return_value="")
+    @patch("caul._record", return_value=b"pcm")
+    def test_listen_asks_for_retry_when_speech_is_unclear(
+        self, record, recognize, speaker
     ):
-        unknown_value_error = type("UnknownValueError", (Exception,), {})
-        recognition = SimpleNamespace(
-            Recognizer=Mock(
-                return_value=SimpleNamespace(
-                    recognize_google=Mock(
-                        side_effect=unknown_value_error("unclear audio")
-                    )
-                )
-            ),
-            UnknownValueError=unknown_value_error,
-        )
-        import_module.return_value = recognition
-
         self.assertIsNone(listen(Settings()))
         speaker.assert_called_once_with("I didn't catch that. Please try again.")
-        record.assert_called_once_with(recognition, Settings())
 
-    @patch("caul.speak")
-    @patch("caul._record", return_value="audio")
-    @patch("caul.import_module")
-    def test_listen_reports_network_error_and_returns_to_loop(
-        self, import_module, record, speaker
-    ):
-        recognition = SimpleNamespace(
-            Recognizer=Mock(return_value=SimpleNamespace(
-                recognize_google=Mock(side_effect=RuntimeError("unused"))
-            )),
-            UnknownValueError=type("UnknownValueError", (Exception,), {}),
-            RequestError=type("RequestError", (Exception,), {}),
-        )
-        recognition.Recognizer.return_value.recognize_google.side_effect = (
-            recognition.RequestError("offline")
-        )
-        import_module.return_value = recognition
-
+    @patch("caul._recognize")
+    @patch("caul._record", return_value=None)
+    def test_listen_skips_recognition_when_nothing_is_heard(self, record, recognize):
         self.assertIsNone(listen(Settings()))
-        speaker.assert_called_once_with(
-            "I can't reach the speech recognition service right now."
-        )
-        record.assert_called_once_with(recognition, Settings())
-        import_module.assert_called_once_with("speech_recognition")
+        recognize.assert_not_called()
+
+    def test_recognize_without_model_explains_setup(self):
+        with self.assertRaisesRegex(RuntimeError, "Vosk model not found"):
+            _recognize(b"\0\0", Settings(vosk_model="no/such/model"))
 
     @patch("caul.speak")
     @patch("caul.listen", side_effect=OSError("no input device"))
