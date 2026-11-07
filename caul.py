@@ -8,13 +8,16 @@ import subprocess
 import sys
 from dataclasses import dataclass
 from datetime import datetime
-from importlib import import_module
 from typing import Optional
 from urllib.parse import quote, urlencode
 import webbrowser
 
 
 logger = logging.getLogger("caul")
+
+DEFAULT_VOSK_MODEL = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), "models", "vosk-model-small-en-us-0.15"
+)
 
 
 class MicrophoneError(OSError):
@@ -28,6 +31,7 @@ class Settings:
     phrase_time_limit: float = 8
     sample_rate: int = 16000
     log_level: int = logging.WARNING
+    vosk_model: str = DEFAULT_VOSK_MODEL
 
 
 def load_settings(environ=None):
@@ -65,6 +69,7 @@ def load_settings(environ=None):
         phrase_time_limit=positive_number("CAUL_PHRASE_TIME_LIMIT", 8, float),
         sample_rate=positive_number("CAUL_SAMPLE_RATE", 16000, int),
         log_level=log_level,
+        vosk_model=environ.get("CAUL_VOSK_MODEL", DEFAULT_VOSK_MODEL),
     )
 
 
@@ -123,8 +128,8 @@ def speak(text):
     engine.runAndWait()
 
 
-def _record(sr, settings=None):
-    """Record one phrase with sounddevice (no PyAudio needed); None if silent."""
+def _record(settings=None):
+    """Record one phrase as 16-bit PCM bytes; None if no speech was heard."""
     import time
 
     import numpy as np
@@ -171,33 +176,41 @@ def _record(sr, settings=None):
     peak = np.abs(audio).max()
     if peak > 0:
         audio *= min(20000 / peak, 100)
-    return sr.AudioData(audio.astype(np.int16).tobytes(), rate, 2)
+    return audio.astype(np.int16).tobytes()
+
+
+def _recognize(pcm, settings):
+    """Recognize PCM audio locally with Vosk; audio never leaves the machine."""
+    import json
+
+    import vosk
+
+    vosk.SetLogLevel(-1)
+    if getattr(_recognize, "_model_path", None) != settings.vosk_model:
+        if not os.path.isdir(settings.vosk_model):
+            raise RuntimeError(
+                "Vosk model not found at " + settings.vosk_model + ". "
+                "See README.md for download instructions."
+            )
+        _recognize._model = vosk.Model(settings.vosk_model)
+        _recognize._model_path = settings.vosk_model
+    recognizer = vosk.KaldiRecognizer(_recognize._model, settings.sample_rate)
+    recognizer.AcceptWaveform(pcm)
+    return json.loads(recognizer.Result()).get("text", "").strip()
 
 
 def listen(settings=None):
     """Listen once and return recognized words, or None if they were unclear."""
     settings = settings or load_settings()
-    sr = import_module("speech_recognition")
-
-    recognizer = sr.Recognizer()
-    audio = _record(sr, settings)
-    if audio is None:
+    pcm = _record(settings)
+    if pcm is None:
         return None
 
-    try:
-        return recognizer.recognize_google(audio).strip()
-    except sr.UnknownValueError:
+    text = _recognize(pcm, settings)
+    if not text:
         speak("I didn't catch that. Please try again.")
         return None
-    except sr.RequestError as error:
-        logger.warning("Speech recognition service error: %s", error)
-        print(
-            "Speech recognition is unavailable. Check your internet connection; "
-            "Caul will keep listening.",
-            file=sys.stderr,
-        )
-        speak("I can't reach the speech recognition service right now.")
-        return None
+    return text
 
 
 def respond(

@@ -1,4 +1,6 @@
-SpeechRecognition==3.17.0
 pyttsx3==2.99
 sounddevice==0.5.6
 numpy==2.5.4
+vosk==0.3.45
+requires-python>=3.13
+pywin32==306; sys_platform == 'win32'
