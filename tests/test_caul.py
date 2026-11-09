@@ -1,5 +1,6 @@
 import unittest
 import logging
+import os
 from contextlib import redirect_stderr
 from datetime import datetime
 from io import StringIO
@@ -7,8 +8,10 @@ from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
 from caul import (
+    DEFAULT_VOSK_MODEL,
     MicrophoneError,
     Settings,
+    _default_model_path,
     _recognize,
     _record,
     calculate,
@@ -99,6 +102,27 @@ class StarterCommandTests(unittest.TestCase):
     def test_recognize_without_model_explains_setup(self):
         with self.assertRaisesRegex(RuntimeError, "Vosk model not found"):
             _recognize(b"\0\0", Settings(vosk_model="no/such/model"))
+
+    def test_default_model_path_prefers_models_folder_next_to_caul(self):
+        import caul
+
+        with patch("caul.os.path.isdir", return_value=True):
+            path = _default_model_path()
+        expected = os.path.join(
+            os.path.dirname(os.path.abspath(caul.__file__)),
+            "models",
+            "vosk-model-small-en-us-0.15",
+        )
+        self.assertEqual(path, expected)
+
+    def test_default_model_path_falls_back_to_user_data_folder(self):
+        with patch("caul.os.path.isdir", return_value=False):
+            path = _default_model_path()
+        self.assertTrue(path.endswith("vosk-model-small-en-us-0.15"))
+        self.assertIn(os.path.join("Caul", "models"), path)
+
+    def test_default_model_path_is_a_valid_setting(self):
+        self.assertTrue(DEFAULT_VOSK_MODEL.endswith("vosk-model-small-en-us-0.15"))
 
     @patch("caul.speak")
     @patch("caul.listen", side_effect=OSError("no input device"))
