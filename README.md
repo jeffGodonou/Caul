@@ -23,6 +23,14 @@ py -m venv .venv
 .\.venv\Scripts\python.exe caul.py
 ```
 
+`requirements.txt` installs Caul itself in editable mode (dependencies are
+pinned in `pyproject.toml`), so this also adds a `caul` command to the virtual
+environment: `.\.venv\Scripts\caul.exe` starts the assistant too. To use Caul
+without a virtual environment, run `pipx install .` from the project folder,
+then start it with `caul`. An installed copy looks for the speech model in
+`%LOCALAPPDATA%\Caul\models` instead of the project's `models` folder — copy
+`models\vosk-model-small-en-us-0.15` there, or set `CAUL_VOSK_MODEL`.
+
 Speech recognition runs locally with [Vosk](https://alphacephei.com/vosk/) —
 your audio never leaves the computer, and no internet connection is needed to
 understand you. Caul speaks using your computer's local text-to-speech engine.
@@ -58,7 +66,7 @@ environment settings can be set in PowerShell before starting Caul:
 | `CAUL_PHRASE_TIME_LIMIT` | `8` | Maximum seconds recorded per phrase |
 | `CAUL_SAMPLE_RATE` | `16000` | Microphone sample rate in Hz |
 | `CAUL_LOG_LEVEL` | `WARNING` | Optional diagnostics: `DEBUG`, `INFO`, `WARNING`, `ERROR`, or `CRITICAL` |
-| `CAUL_VOSK_MODEL` | `models/vosk-model-small-en-us-0.15` | Path to the Vosk speech model |
+| `CAUL_VOSK_MODEL` | `models/vosk-model-small-en-us-0.15` (source) or `%LOCALAPPDATA%\Caul\models\...` (installed) | Path to the Vosk speech model |
 
 If Windows reports that no input device is available, connect or enable a
 microphone in Windows Sound settings, select its device number as shown above,
