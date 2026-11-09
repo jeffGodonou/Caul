@@ -15,9 +15,22 @@ import webbrowser
 
 logger = logging.getLogger("caul")
 
-DEFAULT_VOSK_MODEL = os.path.join(
-    os.path.dirname(os.path.abspath(__file__)), "models", "vosk-model-small-en-us-0.15"
-)
+MODEL_FOLDER_NAME = "vosk-model-small-en-us-0.15"
+
+
+def _default_model_path():
+    """Locate the Vosk model: beside this file when running from source,
+    otherwise in the per-user data folder used by an installed copy."""
+    beside_module = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), "models", MODEL_FOLDER_NAME
+    )
+    if os.path.isdir(beside_module):
+        return beside_module
+    data_root = os.environ.get("LOCALAPPDATA") or os.path.expanduser("~")
+    return os.path.join(data_root, "Caul", "models", MODEL_FOLDER_NAME)
+
+
+DEFAULT_VOSK_MODEL = _default_model_path()
 
 
 class MicrophoneError(OSError):
