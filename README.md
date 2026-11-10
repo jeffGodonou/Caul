@@ -1,43 +1,47 @@
-## Caul
+# Caul
 
-Caul is a small Python voice assistant for your computer. We are building it
-one working step at a time so each feature is understandable and testable
-before moving on.
+**A private, offline voice assistant for Windows.**
 
-## Milestone 7: dependable startup and recovery
+Caul listens for a spoken command, understands it entirely on your machine,
+and answers with your computer's own voice. No audio ever leaves your device —
+speech recognition runs locally with [Vosk](https://alphacephei.com/vosk/),
+and text-to-speech uses the Windows voice engine. An internet connection is
+only used when a command opens a web page.
 
-Caul listens for one phrase at a time, greets you, responds to "help", tells
-the time, calculates basic arithmetic, plays rock-paper-scissors, searches
-Google or YouTube, checks the weather, searches Spotify, and opens only
-approved apps or sites. Say "goodbye", "quit", or "exit" to stop. See the
-[learning roadmap](ROADMAP.md) for how the project was built.
+## Features
 
-### Set up on Windows
+- **Offline speech recognition** — your voice is never sent to a cloud service
+- **Local text-to-speech** — answers through the built-in Windows voice
+- **Voice commands** — time, arithmetic, rock-paper-scissors, Google/YouTube
+  search, weather lookup, Spotify search, and opening approved apps
+- **Safe by default** — only allowlisted apps and sites can be opened; spoken
+  input is never executed as a shell command
+- **Configurable** — microphone, timing, and logging via environment variables
+- **Dependable** — clear recovery from microphone and setup problems
 
-Install Python 3.9 or newer, connect a microphone, then open PowerShell in the
-project folder and run:
+## Install
+
+### Download (no Python required)
+
+1. Download `caul-0.7.0-windows-x64.zip` from
+   [Releases](https://github.com/jeffGodonou/Caul/releases).
+2. Unzip it and run `caul.exe`.
+
+The speech model is bundled, so it works offline on first run. The executable
+is unsigned, so Windows SmartScreen may ask you to confirm.
+
+### From source
+
+Requires Python 3.13 or newer and a microphone.
 
 ```powershell
+git clone https://github.com/jeffGodonou/Caul.git
+cd Caul
 py -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
-.\.venv\Scripts\python.exe caul.py
 ```
 
-`requirements.txt` installs Caul itself in editable mode (dependencies are
-pinned in `pyproject.toml`), so this also adds a `caul` command to the virtual
-environment: `.\.venv\Scripts\caul.exe` starts the assistant too. To use Caul
-without a virtual environment, run `pipx install .` from the project folder,
-then start it with `caul`. An installed copy looks for the speech model in
-`%LOCALAPPDATA%\Caul\models` instead of the project's `models` folder — copy
-`models\vosk-model-small-en-us-0.15` there, or set `CAUL_VOSK_MODEL`.
-
-Speech recognition runs locally with [Vosk](https://alphacephei.com/vosk/) —
-your audio never leaves the computer, and no internet connection is needed to
-understand you. Caul speaks using your computer's local text-to-speech engine.
-An internet connection is only needed when a command opens a web page.
-
-The first time you set up the project, download the small English model
-(about 40 MB) into the `models` folder:
+Download the speech model (about 40 MB) into the `models` folder:
 
 ```powershell
 curl.exe -L -o "$env:TEMP\vosk-model.zip" "https://alphacephei.com/vosk/models/vosk-model-small-en-us-0.15.zip"
@@ -45,73 +49,71 @@ Expand-Archive "$env:TEMP\vosk-model.zip" models
 Remove-Item "$env:TEMP\vosk-model.zip"
 ```
 
-### Settings and troubleshooting
-
-Defaults work with the Windows default microphone. To choose a different
-microphone, first list available device names and numbers:
+Then start Caul:
 
 ```powershell
-.\.venv\Scripts\python.exe -c "import sounddevice as sd; print(sd.query_devices())"
-$env:CAUL_MICROPHONE_DEVICE = "2"
-.\.venv\Scripts\python.exe caul.py
+.\.venv\Scripts\caul.exe
 ```
 
-Replace `2` with the input device number from the list. These optional
-environment settings can be set in PowerShell before starting Caul:
+## Usage
 
-| Setting | Default | Purpose |
+Start Caul, wait for "Caul is ready", then speak. Say **"goodbye"** (or
+"quit" / "exit") to stop.
+
+| Say | Caul does |
+| --- | --- |
+| "hello" | Greets you |
+| "help" | Lists what it can do |
+| "what time is it" | Tells the current time |
+| "calculate 12 divided by 3" | Answers 4 |
+| "rock paper scissors rock" | Plays a round |
+| "search for …" / "search YouTube for …" | Opens a Google / YouTube search |
+| "what's the weather in Paris" | Opens a weather search |
+| "play lo-fi & jazz" | Opens a Spotify search |
+| "open calculator" / "open notepad" / "open google" / "open youtube" | Opens the app or site |
+
+## Configuration
+
+Caul works out of the box with the default microphone. Optional environment
+variables (set in PowerShell before starting):
+
+| Variable | Default | Purpose |
 | --- | --- | --- |
 | `CAUL_MICROPHONE_DEVICE` | system default | Input device number |
 | `CAUL_LISTEN_TIMEOUT` | `5` | Seconds to wait for speech to begin |
 | `CAUL_PHRASE_TIME_LIMIT` | `8` | Maximum seconds recorded per phrase |
 | `CAUL_SAMPLE_RATE` | `16000` | Microphone sample rate in Hz |
-| `CAUL_LOG_LEVEL` | `WARNING` | Optional diagnostics: `DEBUG`, `INFO`, `WARNING`, `ERROR`, or `CRITICAL` |
-| `CAUL_VOSK_MODEL` | `models/vosk-model-small-en-us-0.15` (source) or `%LOCALAPPDATA%\Caul\models\...` (installed) | Path to the Vosk speech model |
+| `CAUL_LOG_LEVEL` | `WARNING` | `DEBUG`, `INFO`, `WARNING`, `ERROR`, or `CRITICAL` |
+| `CAUL_VOSK_MODEL` | bundled / `models/…` | Path to a Vosk speech model |
 
-If Windows reports that no input device is available, connect or enable a
-microphone in Windows Sound settings, select its device number as shown above,
-and restart Caul. If Caul reports that the Vosk model is missing, run the
-download commands above or point `CAUL_VOSK_MODEL` at an unpacked model from
-the [Vosk model list](https://alphacephei.com/vosk/models). Use
-`CAUL_LOG_LEVEL=INFO` to see diagnostic messages. Caul does not log spoken
-phrases.
+To pick a specific microphone, list devices and set its number:
 
-### Check milestone 7
+```powershell
+.\.venv\Scripts\python.exe -c "import sounddevice as sd; print(sd.query_devices())"
+$env:CAUL_MICROPHONE_DEVICE = "2"
+```
 
-Run the automated checks from the project folder:
+## Troubleshooting
+
+- **"No input device" / microphone errors** — connect or enable a microphone
+  in Windows Sound settings, select its device number as above, and restart.
+- **"Vosk model not found"** — run the model download commands above, or point
+  `CAUL_VOSK_MODEL` at an unpacked model from the
+  [Vosk model list](https://alphacephei.com/vosk/models).
+- **Diagnostics** — set `$env:CAUL_LOG_LEVEL = "INFO"` for detailed logs.
+  Caul never logs spoken phrases.
+
+## Development
 
 ```powershell
 .\.venv\Scripts\python.exe -m unittest discover -s tests -v
 ```
 
-Then start Caul and try:
+Every push and pull request runs the test suite on GitHub Actions
+(`windows-latest`, Python 3.13). Tests mock speech recognition, so CI needs
+no microphone or model.
 
-1. Say "hello" and check that Caul answers.
-2. Say "what's the weather in Paris" and check that a weather search opens.
-3. Say "weather" and check that Caul asks for a location.
-4. Say "play lo-fi & jazz!" and check that Spotify search opens.
-5. Say "open calculator" and check that the calculator opens.
-6. Say "calculate 12 divided by 3" and check that Caul says 4.
-7. Say "rock paper scissors rock" and check that Caul reports the outcome.
-8. Say "goodbye" and check that Caul exits.
-9. Disconnect from the internet and say "hello" — recognition is offline, so
-   Caul should still answer. Web commands will open pages that cannot load
-   until you reconnect.
-10. If practical, select an unavailable microphone device and confirm Caul
-    reports the setup problem and exits cleanly. Restore the working device
-    setting before starting Caul again.
-11. Set `$env:CAUL_LOG_LEVEL = "INFO"` and confirm diagnostic logs appear;
-    clear it with `Remove-Item Env:CAUL_LOG_LEVEL` afterward.
-
-If a check fails, first compare what you heard with the expected behavior,
-then change one thing and rerun the same check. Full build notes are in the
-[roadmap](ROADMAP.md).
-
-### Build a standalone executable
-
-To share Caul with someone who does not have Python, build a single-folder
-Windows app with PyInstaller (the Vosk model is bundled, so it works offline
-on first run):
+To build the standalone executable yourself:
 
 ```powershell
 .\.venv\Scripts\python.exe -m pip install pyinstaller
@@ -121,14 +123,14 @@ on first run):
   caul.py
 ```
 
-The result is `dist\caul\caul.exe` (about 180 MB with the model). Copy the
-whole `dist\caul` folder to another Windows machine and run `caul.exe` — no
-Python or setup needed. The `build`, `dist`, and `caul.spec` outputs are
-git-ignored.
+The result is `dist\caul\caul.exe`.
 
-### Continuous integration
+## Privacy
 
-Every push to `master` and every pull request runs the test suite on GitHub
-Actions (`windows-latest`, Python 3.13) — see
-[.github/workflows/tests.yml](.github/workflows/tests.yml). The tests mock
-speech recognition, so CI does not need the Vosk model or a microphone.
+Caul records audio only while listening for a command, processes it locally,
+and discards it immediately. Nothing is transmitted or stored. Web commands
+open pages in your browser, which then connect to those services as usual.
+
+## License
+
+[MIT](LICENSE)
