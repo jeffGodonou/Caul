@@ -106,3 +106,10 @@ Then start Caul and try:
 If a check fails, first compare what you heard with the expected behavior,
 then change one thing and rerun the same check. Full build notes are in the
 [roadmap](ROADMAP.md).
+
+### Continuous integration
+
+Every push to `master` and every pull request runs the test suite on GitHub
+Actions (`windows-latest`, Python 3.13) — see
+[.github/workflows/tests.yml](.github/workflows/tests.yml). The tests mock
+speech recognition, so CI does not need the Vosk model or a microphone.
