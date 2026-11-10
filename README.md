@@ -113,6 +113,10 @@ Every push and pull request runs the test suite on GitHub Actions
 (`windows-latest`, Python 3.13). Tests mock speech recognition, so CI needs
 no microphone or model.
 
+Pushing a version tag (for example `v0.8.0`) additionally builds the
+standalone executable and publishes a GitHub Release with the zipped app
+attached — see [.github/workflows/ci.yml](.github/workflows/ci.yml).
+
 To build the standalone executable yourself:
 
 ```powershell
