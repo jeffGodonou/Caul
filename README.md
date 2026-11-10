@@ -1,4 +1,4 @@
-#S Caul
+## Caul
 
 Caul is a small Python voice assistant for your computer. We are building it
 one working step at a time so each feature is understandable and testable
@@ -106,6 +106,25 @@ Then start Caul and try:
 If a check fails, first compare what you heard with the expected behavior,
 then change one thing and rerun the same check. Full build notes are in the
 [roadmap](ROADMAP.md).
+
+### Build a standalone executable
+
+To share Caul with someone who does not have Python, build a single-folder
+Windows app with PyInstaller (the Vosk model is bundled, so it works offline
+on first run):
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install pyinstaller
+.\.venv\Scripts\python.exe -m PyInstaller --noconfirm --name caul `
+  --add-data "models/vosk-model-small-en-us-0.15;models/vosk-model-small-en-us-0.15" `
+  --collect-all vosk --collect-all sounddevice --collect-all pyttsx3 --collect-all comtypes `
+  caul.py
+```
+
+The result is `dist\caul\caul.exe` (about 180 MB with the model). Copy the
+whole `dist\caul` folder to another Windows machine and run `caul.exe` — no
+Python or setup needed. The `build`, `dist`, and `caul.spec` outputs are
+git-ignored.
 
 ### Continuous integration
 
