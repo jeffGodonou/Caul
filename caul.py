@@ -93,12 +93,14 @@ def calculate(expression):
     expression = expression.replace("times", "*")
     expression = expression.replace("plus", "+")
     expression = expression.replace("minus", "-")
+    expression = expression.replace("to the power of", "**")
     tree = ast.parse(expression, mode="eval")
     operations = {
         ast.Add: operator.add,
         ast.Sub: operator.sub,
         ast.Mult: operator.mul,
         ast.Div: operator.truediv,
+        ast.Pow: operator.pow,
     }
 
     def evaluate(node):
@@ -110,6 +112,10 @@ def calculate(expression):
             value = evaluate(node.operand)
             return value if isinstance(node.op, ast.UAdd) else -value
         if isinstance(node, ast.BinOp) and type(node.op) in operations:
+            left = evaluate(node.left)
+            right = evaluate(node.right)
+            return operations[type(node.op)](left, right)
+        if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Pow):
             left = evaluate(node.left)
             right = evaluate(node.right)
             return operations[type(node.op)](left, right)
