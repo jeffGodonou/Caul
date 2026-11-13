@@ -172,7 +172,7 @@ class StarterCommandTests(unittest.TestCase):
     def test_help_command_lists_supported_actions(self):
         self.assertTrue(respond("help", speaker=self.speaker))
         self.speaker.assert_called_once_with(
-            "I can greet you, tell you the time, calculate basic arithmetic, play rock-paper-scissors, search Google or YouTube, check the weather, play music, open Calculator, Notepad, Google, or YouTube, or stop when you say goodbye."
+            "I can greet you, tell you the time, calculate basic arithmetic, play rock-paper-scissors, search Google or YouTube, check the weather, play music, open Outlook Calendar, Calculator, Notepad, Google, or YouTube, or stop when you say goodbye."
         )
 
     def test_time_command_speaks_the_current_time(self):
@@ -244,6 +244,12 @@ class StarterCommandTests(unittest.TestCase):
         self.assertTrue(respond("open notepad", speaker=self.speaker, app_launcher=launcher))
         launcher.assert_called_once_with(["notepad.exe"])
         self.speaker.assert_called_once_with("Opening Notepad.")
+
+    def test_open_calendar_opens_outlook_calendar(self):
+        browser = Mock()
+        self.assertTrue(respond("open calendar", speaker=self.speaker, browser=browser))
+        browser.assert_called_once_with("https://outlook.live.com/calendar/0/view")
+        self.speaker.assert_called_once_with("Opening Outlook Calendar.")
 
     def test_open_unknown_target_is_refused(self):
         browser = Mock()
