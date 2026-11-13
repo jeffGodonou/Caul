@@ -238,6 +238,7 @@ def respond(
     browser=None,
     app_launcher=None,
     random_choice=random.choice,
+    listener=None,
 ):
     """Handle supported commands and return False when asked to exit."""
     command = (command or "").strip()
@@ -250,7 +251,7 @@ def respond(
         speaker("Hello! I'm Caul. Say goodbye when you want me to stop.")
         return True
     if normalized in {"help", "what can you do"}:
-        speaker("I can greet you, tell you the time, calculate basic arithmetic, play rock-paper-scissors, search Google or YouTube, check the weather, play music, open Outlook Calendar, Calculator, Notepad, Google, or YouTube, or stop when you say goodbye.")
+        speaker("I can greet you, tell you the time, calculate basic arithmetic, play rock-paper-scissors, search Google or YouTube, check the weather, play music, open Google or Outlook Calendar, Calculator, Notepad, Google, or YouTube, or stop when you say goodbye.")
         return True
     if normalized in {"time", "what time is it"}:
         current_time = (clock or datetime.now)().strftime("%I:%M %p").lstrip("0")
@@ -360,9 +361,34 @@ def respond(
         return True
 
     if normalized == "open calendar":
+        speaker("Which calendar would you like to open: Google or Outlook?")
+        choice = (listener if listener is not None else listen)()
+        if not choice or not choice.strip():
+            speaker("No calendar selected. Say open calendar to try again.")
+            return True
+        choice = choice.strip().lower()
+        if choice in {"quit", "exit", "goodbye"}:
+            speaker("Goodbye!")
+            return False
+        if choice == "cancel":
+            speaker("Calendar opening cancelled.")
+            return True
+        calendars = {
+            "google": ("Google Calendar", "https://calendar.google.com/"),
+            "google calendar": ("Google Calendar", "https://calendar.google.com/"),
+            "outlook": ("Outlook Calendar", "https://outlook.live.com/calendar/0/view"),
+            "outlook calendar": ("Outlook Calendar", "https://outlook.live.com/calendar/0/view"),
+            "microsoft": ("Outlook Calendar", "https://outlook.live.com/calendar/0/view"),
+        }
+        if choice not in calendars:
+            speaker("I can open Google or Outlook Calendar. Say open calendar to try again.")
+            return True
+        label, url = calendars[choice]
         open_url = browser if browser is not None else webbrowser.open
-        open_url("https://outlook.live.com/calendar/0/view")
-        speaker("Opening Outlook Calendar.")
+        if open_url(url) is False:
+            speaker("I couldn't open " + label + ". Please check your browser.")
+            return True
+        speaker("Opening " + label + ".")
         return True
 
     if normalized.startswith("open "):
@@ -397,6 +423,7 @@ def respond(
         speaker("I don't know that command. Say help to hear what I can do.")
     return True
 
+
 def main(settings=None):
     try:
         settings = settings or load_settings()
@@ -407,7 +434,9 @@ def main(settings=None):
         speak("Caul is ready. Say hello, or say goodbye to stop.")
         while True:
             command = listen(settings)
-            if command is not None and not respond(command):
+            if command is not None and not respond(
+                command, listener=lambda: listen(settings)
+            ):
                 break
     except KeyboardInterrupt:
         speak("Goodbye!")

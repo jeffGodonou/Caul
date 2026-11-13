@@ -13,7 +13,8 @@ only used when a command opens a web page.
 - **Offline speech recognition** — your voice is never sent to a cloud service
 - **Local text-to-speech** — answers through the built-in Windows voice
 - **Voice commands** — time, arithmetic, rock-paper-scissors, Google/YouTube
-  search, weather lookup, Spotify search, and opening approved apps
+  search, weather lookup, Spotify search, opening Google or Outlook Calendar, and other
+  approved apps
 - **Safe by default** — only allowlisted apps and sites can be opened; spoken
   input is never executed as a shell command
 - **Configurable** — microphone, timing, and logging via environment variables
@@ -70,7 +71,12 @@ Start Caul, wait for "Caul is ready", then speak. Say **"goodbye"** (or
 | "search for …" / "search YouTube for …" | Opens a Google / YouTube search |
 | "what's the weather in Paris" | Opens a weather search |
 | "play lo-fi & jazz" | Opens a Spotify search |
+| "open calendar" | Asks you to choose Google or Outlook, then opens it in your browser |
 | "open calculator" / "open notepad" / "open google" / "open youtube" | Opens the app or site |
+
+After saying "open calendar", say "Google" or "Outlook" when prompted.
+Say "cancel" to return without opening a calendar. If Caul does not hear or
+recognize your choice, say "open calendar" to try again.
 
 ## Configuration
 
