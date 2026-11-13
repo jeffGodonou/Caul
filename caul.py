@@ -201,7 +201,6 @@ def _record(settings=None):
 def _recognize(pcm, settings):
     """Recognize PCM audio locally with Vosk; audio never leaves the machine."""
     import json
-
     import vosk
 
     vosk.SetLogLevel(-1)
@@ -251,7 +250,7 @@ def respond(
         speaker("Hello! I'm Caul. Say goodbye when you want me to stop.")
         return True
     if normalized in {"help", "what can you do"}:
-        speaker("I can greet you, tell you the time, calculate basic arithmetic, play rock-paper-scissors, search Google or YouTube, check the weather, play music, open Calculator, Notepad, Google, or YouTube, or stop when you say goodbye.")
+        speaker("I can greet you, tell you the time, calculate basic arithmetic, play rock-paper-scissors, search Google or YouTube, check the weather, play music, open Outlook Calendar, Calculator, Notepad, Google, or YouTube, or stop when you say goodbye.")
         return True
     if normalized in {"time", "what time is it"}:
         current_time = (clock or datetime.now)().strftime("%I:%M %p").lstrip("0")
@@ -360,6 +359,12 @@ def respond(
         speaker("Playing " + song + " on Spotify.")
         return True
 
+    if normalized == "open calendar":
+        open_url = browser if browser is not None else webbrowser.open
+        open_url("https://outlook.live.com/calendar/0/view")
+        speaker("Opening Outlook Calendar.")
+        return True
+
     if normalized.startswith("open "):
         target = normalized[len("open "):].strip()
         apps = {
@@ -391,7 +396,6 @@ def respond(
     if command:
         speaker("I don't know that command. Say help to hear what I can do.")
     return True
-
 
 def main(settings=None):
     try:
