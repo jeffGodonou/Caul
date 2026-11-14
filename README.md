@@ -13,7 +13,8 @@ only used when a command opens a web page.
 - **Offline speech recognition** — your voice is never sent to a cloud service
 - **Local text-to-speech** — answers through the built-in Windows voice
 - **Voice commands** — time, arithmetic, rock-paper-scissors, Google/YouTube
-  search, weather lookup, Spotify search, opening Google or Outlook Calendar, and other
+  search, weather lookup, Spotify search, preparing calendar events, and opening
+  Google or Outlook Calendar and other
   approved apps
 - **Safe by default** — only allowlisted apps and sites can be opened; spoken
   input is never executed as a shell command
@@ -72,11 +73,22 @@ Start Caul, wait for "Caul is ready", then speak. Say **"goodbye"** (or
 | "what's the weather in Paris" | Opens a weather search |
 | "play lo-fi & jazz" | Opens a Spotify search |
 | "open calendar" | Asks you to choose Google or Outlook, then opens it in your browser |
+| "set a meeting with Seb tomorrow at 4 PM" | Asks for missing details and opens an event draft |
+| "session work for tomorrow from 4 PM to 6 PM" | Opens an event draft after you choose a calendar |
 | "open calculator" / "open notepad" / "open google" / "open youtube" | Opens the app or site |
 
 After saying "open calendar", say "Google" or "Outlook" when prompted.
 Say "cancel" to return without opening a calendar. If Caul does not hear or
 recognize your choice, say "open calendar" to try again.
+
+For event drafts, you can also say "schedule a meeting" or "create an event"
+followed by a title. Use "today", "tomorrow", or a date with its year, such as
+"November fourteenth twenty twenty six". Give times with AM or PM, or use 24-hour times such as
+"16:00". Caul asks about missing or ambiguous details; say "cancel" to stop.
+Events must start and end on the same day. Caul opens a draft in the selected
+service; check the date, time and calendar time zone and save it there. Names
+in the title are not automatically invited. Event details are sent to the
+selected calendar website in the draft URL.
 
 ## Configuration
 
