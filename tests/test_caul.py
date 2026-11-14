@@ -6,6 +6,7 @@ from datetime import datetime
 from io import StringIO
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
+from urllib.parse import parse_qs, urlparse
 
 from caul import (
     DEFAULT_VOSK_MODEL,
@@ -144,7 +145,7 @@ class StarterCommandTests(unittest.TestCase):
     def test_main_stops_listening_after_goodbye(self, listen_once, speaker):
         with patch(
             "caul.respond",
-            side_effect=lambda command: respond(command, speaker=speaker),
+            side_effect=lambda command, **kwargs: respond(command, speaker=speaker, **kwargs),
         ):
             main(Settings())
         listen_once.assert_called_once_with(Settings())
@@ -172,7 +173,7 @@ class StarterCommandTests(unittest.TestCase):
     def test_help_command_lists_supported_actions(self):
         self.assertTrue(respond("help", speaker=self.speaker))
         self.speaker.assert_called_once_with(
-            "I can greet you, tell you the time, calculate basic arithmetic, play rock-paper-scissors, search Google or YouTube, check the weather, play music, open Outlook Calendar, Calculator, Notepad, Google, or YouTube, or stop when you say goodbye."
+            "I can greet you, tell you the time, calculate basic arithmetic, play rock-paper-scissors, search Google or YouTube, check the weather, play music, prepare calendar events, open Google or Outlook Calendar, Calculator, Notepad, Google, or YouTube, or stop when you say goodbye."
         )
 
     def test_time_command_speaks_the_current_time(self):
@@ -245,11 +246,168 @@ class StarterCommandTests(unittest.TestCase):
         launcher.assert_called_once_with(["notepad.exe"])
         self.speaker.assert_called_once_with("Opening Notepad.")
 
-    def test_open_calendar_opens_outlook_calendar(self):
+    def test_open_calendar_asks_and_opens_selected_service(self):
+        for choice, label, url in (
+            ("Google", "Google Calendar", "https://calendar.google.com/"),
+            ("google calendar", "Google Calendar", "https://calendar.google.com/"),
+            (" Outlook ", "Outlook Calendar", "https://outlook.live.com/calendar/0/view"),
+            ("outlook calendar", "Outlook Calendar", "https://outlook.live.com/calendar/0/view"),
+            ("microsoft", "Outlook Calendar", "https://outlook.live.com/calendar/0/view"),
+        ):
+            with self.subTest(choice=choice):
+                speaker = Mock()
+                browser = Mock(return_value=True)
+                def choose():
+                    browser.assert_not_called()
+                    speaker.assert_called_once_with(
+                        "Which calendar would you like to open: Google or Outlook?"
+                    )
+                    return choice
+
+                self.assertTrue(
+                    respond("open calendar", speaker=speaker, browser=browser, listener=choose)
+                )
+                browser.assert_called_once_with(url)
+                self.assertEqual(speaker.call_args_list[-1], unittest.mock.call("Opening " + label + "."))
+
+    def test_open_calendar_handles_missing_unsupported_and_cancelled_choice(self):
+        for choice, message in (
+            (None, "No calendar selected. Say open calendar to try again."),
+            ("  ", "No calendar selected. Say open calendar to try again."),
+            ("apple", "I can open Google or Outlook Calendar. Say open calendar to try again."),
+            ("cancel", "Calendar opening cancelled."),
+        ):
+            with self.subTest(choice=choice):
+                speaker = Mock()
+                browser = Mock()
+                self.assertTrue(
+                    respond("open calendar", speaker=speaker, browser=browser,
+                            listener=Mock(return_value=choice))
+                )
+                browser.assert_not_called()
+                self.assertEqual(speaker.call_args_list[-1], unittest.mock.call(message))
+
+    def test_open_calendar_goodbye_stops_the_loop(self):
         browser = Mock()
-        self.assertTrue(respond("open calendar", speaker=self.speaker, browser=browser))
-        browser.assert_called_once_with("https://outlook.live.com/calendar/0/view")
-        self.speaker.assert_called_once_with("Opening Outlook Calendar.")
+        self.assertFalse(
+            respond("open calendar", speaker=self.speaker, browser=browser,
+                    listener=Mock(return_value="goodbye"))
+        )
+        browser.assert_not_called()
+        self.assertEqual(self.speaker.call_args_list[-1], unittest.mock.call("Goodbye!"))
+
+    def test_open_calendar_reports_browser_failure(self):
+        self.assertTrue(
+            respond("open calendar", speaker=self.speaker, browser=Mock(return_value=False),
+                    listener=Mock(return_value="google"))
+        )
+        self.assertEqual(
+            self.speaker.call_args_list[-1],
+            unittest.mock.call("I couldn't open Google Calendar. Please check your browser."),
+        )
+
+    @patch("caul.speak")
+    @patch("caul.listen", side_effect=["open calendar", "google", "goodbye"])
+    def test_main_listens_for_calendar_choice_with_current_settings(self, listen_once, speaker):
+        settings = Settings(microphone_device=2)
+        browser = Mock(return_value=True)
+        with patch(
+            "caul.respond",
+            side_effect=lambda command, **kwargs: respond(
+                command, speaker=speaker, browser=browser, **kwargs
+            ),
+        ):
+            main(settings)
+        self.assertEqual(listen_once.call_args_list, [unittest.mock.call(settings)] * 3)
+        browser.assert_called_once_with("https://calendar.google.com/")
+
+    def test_calendar_session_prompts_for_ambiguous_time_and_opens_google_draft(self):
+        browser = Mock(return_value=True)
+        listener = Mock(side_effect=["four p m", "Google"])
+        self.assertTrue(respond(
+            "session work for tomorrow from 4 to 6PM", speaker=self.speaker,
+            browser=browser, listener=listener, clock=lambda: datetime(2026, 12, 31, 10),
+        ))
+        url = urlparse(browser.call_args.args[0])
+        self.assertEqual((url.netloc, url.path), ("calendar.google.com", "/calendar/render"))
+        self.assertEqual(parse_qs(url.query), {
+            "action": ["TEMPLATE"], "text": ["session work"],
+            "dates": ["20270101T160000/20270101T180000"],
+        })
+        self.assertEqual(listener.call_count, 2)
+        self.assertIn("Review the date, time and time zone", self.speaker.call_args.args[0])
+
+    def test_calendar_meeting_asks_for_missing_date_end_and_service(self):
+        browser = Mock(return_value=True)
+        listener = Mock(side_effect=["tomorrow", "five pm", "outlook"])
+        self.assertTrue(respond(
+            "set a meeting with Seb at 4 pm", speaker=self.speaker,
+            browser=browser, listener=listener, clock=lambda: datetime(2026, 11, 13),
+        ))
+        url = urlparse(browser.call_args.args[0])
+        self.assertEqual((url.netloc, url.path), ("outlook.live.com", "/calendar/deeplink/compose"))
+        self.assertEqual(parse_qs(url.query), {
+            "path": ["/calendar/action/compose"], "rru": ["addevent"],
+            "subject": ["Meeting with Seb"],
+            "startdt": ["2026-11-14T16:00:00"], "enddt": ["2026-11-14T17:00:00"],
+        })
+        self.assertEqual(listener.call_count, 3)
+
+    def test_calendar_reasks_invalid_date_time_and_service(self):
+        browser = Mock(return_value=True)
+        listener = Mock(side_effect=[
+            "not a date", "November fourteenth twenty twenty six", "4", "4 pm", "3 pm", "5 pm",
+            "apple", "google",
+        ])
+        self.assertTrue(respond(
+            "create an event Planning & review", speaker=self.speaker, browser=browser,
+            listener=listener, clock=lambda: datetime(2026, 11, 13),
+        ))
+        query = parse_qs(urlparse(browser.call_args.args[0]).query)
+        self.assertEqual(query["text"], ["Planning & review"])
+        self.assertEqual(query["dates"], ["20261114T160000/20261114T170000"])
+        self.assertTrue(any("end time must be after" in call.args[0] for call in self.speaker.call_args_list))
+
+    def test_calendar_event_without_title_asks_for_title(self):
+        browser = Mock(return_value=True)
+        listener = Mock(side_effect=["Planning", "google"])
+        self.assertTrue(respond(
+            "create an event for tomorrow from 4 pm to 6 pm", speaker=self.speaker,
+            browser=browser, listener=listener, clock=lambda: datetime(2026, 11, 13),
+        ))
+        self.assertEqual(parse_qs(urlparse(browser.call_args.args[0]).query)["text"], ["Planning"])
+        self.assertEqual(self.speaker.call_args_list[0], unittest.mock.call("What is the event title?"))
+
+    def test_calendar_creation_cancel_timeout_and_goodbye(self):
+        for answer, expected in ((None, True), ("cancel", True), ("goodbye", False)):
+            with self.subTest(answer=answer):
+                browser = Mock()
+                self.assertEqual(respond(
+                    "set a meeting with Seb", speaker=Mock(), browser=browser,
+                    listener=Mock(return_value=answer), clock=lambda: datetime(2026, 11, 13),
+                ), expected)
+                browser.assert_not_called()
+
+    def test_calendar_creation_browser_failure_is_reported(self):
+        self.assertTrue(respond(
+            "session work for today from 16:00 to 18:00", speaker=self.speaker,
+            listener=Mock(return_value="google"), browser=Mock(return_value=False),
+            clock=lambda: datetime(2026, 11, 13),
+        ))
+        self.assertEqual(self.speaker.call_args.args[0], "I couldn't open Google Calendar. Please check your browser.")
+
+    @patch("caul.speak")
+    @patch("caul.listen", side_effect=["session work for tomorrow from 4 pm to 6 pm", "google", "goodbye"])
+    def test_main_event_followup_uses_current_settings(self, listen_once, speaker):
+        settings = Settings(microphone_device=2)
+        browser = Mock(return_value=True)
+        with patch("caul.respond", side_effect=lambda command, **kwargs: respond(
+            command, speaker=speaker, browser=browser,
+            clock=lambda: datetime(2026, 11, 13), **kwargs
+        )):
+            main(settings)
+        self.assertEqual(listen_once.call_args_list, [unittest.mock.call(settings)] * 3)
+        browser.assert_called_once()
 
     def test_open_unknown_target_is_refused(self):
         browser = Mock()
