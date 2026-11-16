@@ -123,6 +123,9 @@ $env:CAUL_MICROPHONE_DEVICE = "2"
 
 ## Development
 
+The application entry point is `caul.py`; audio, calendar handling, command
+routing, arithmetic, and settings live in separate `caul_*.py` modules.
+
 ```powershell
 .\.venv\Scripts\python.exe -m unittest discover -s tests -v
 ```
