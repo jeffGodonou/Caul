@@ -20,4 +20,11 @@ dependencies = [
 caul = "caul:main"
 
 [tool.setuptools]
-py-modules = ["caul"]
+py-modules = [
+    "caul",
+    "caul_audio",
+    "caul_calendar",
+    "caul_commands",
+    "caul_math",
+    "caul_settings",
+]
