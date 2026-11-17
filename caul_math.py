@@ -1,3 +1,5 @@
+"""Safe arithmetic evaluation for spoken calculations."""
+
 import ast
 import math
 import operator
@@ -21,6 +23,7 @@ def calculate(expression):
     }
 
     def evaluate(node):
+        # Walk only the explicitly supported AST nodes; never eval user input.
         if isinstance(node, ast.Expression):
             return evaluate(node.body)
         if isinstance(node, ast.Constant) and isinstance(node.value, (int, float)):

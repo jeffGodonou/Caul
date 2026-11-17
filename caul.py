@@ -1,8 +1,11 @@
+"""Application entry point and compatibility exports for Caul's features."""
+
 import logging
 import os
 import random
 import sys
 
+# Keep these imports available from ``caul`` for existing callers and tests.
 from caul_audio import MicrophoneError, _recognize, _record, speak
 from caul_calendar import (
     CALENDARS,
@@ -32,6 +35,7 @@ def listen(settings=None):
     """Listen once and return recognized words, or None if they were unclear."""
     from caul_audio import listen as _listen
 
+    # Pass through the public module-level functions so callers can replace them.
     return _listen(settings, recorder=_record, recognizer=_recognize, speaker=speak)
 
 

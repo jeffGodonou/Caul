@@ -1,3 +1,5 @@
+"""Microphone capture, local speech recognition, and speech output."""
+
 import logging
 import os
 
@@ -50,6 +52,7 @@ def _record(settings=None):
             device=settings.microphone_device,
         ) as stream:
             noise = np.sqrt(np.mean(stream.read(block * 5)[0].astype(np.float64) ** 2))
+            # Scale the speech threshold to ambient noise, with a quiet-room floor.
             threshold = max(noise * 3, 40)
             started = time.monotonic()
             speech_start = None
@@ -74,6 +77,7 @@ def _record(settings=None):
     audio = np.concatenate(chunks).astype(np.float64)
     peak = np.abs(audio).max()
     if peak > 0:
+        # Normalize quieter microphones without amplifying beyond the PCM range.
         audio *= min(20000 / peak, 100)
     return audio.astype(np.int16).tobytes()
 
@@ -83,6 +87,7 @@ def _recognize(pcm, settings):
     import json
 
     model_path = getattr(_recognize, "_model_path", None)
+    # Check the model path before importing Vosk to give a setup error first.
     if model_path != settings.vosk_model and not os.path.isdir(settings.vosk_model):
         raise RuntimeError(
             "Vosk model not found at " + settings.vosk_model + ". "
@@ -92,6 +97,7 @@ def _recognize(pcm, settings):
 
     vosk.SetLogLevel(-1)
     if model_path != settings.vosk_model:
+        # Reuse the loaded model while the configured path remains unchanged.
         _recognize._model = vosk.Model(settings.vosk_model)
         _recognize._model_path = settings.vosk_model
     recognizer = vosk.KaldiRecognizer(_recognize._model, settings.sample_rate)

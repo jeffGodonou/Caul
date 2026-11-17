@@ -1,3 +1,5 @@
+"""Parse spoken event details and create calendar draft links."""
+
 import re
 import webbrowser
 from datetime import datetime, timedelta
@@ -68,6 +70,7 @@ def _calendar_date(text, now):
         else:
             continue
         if suffix is not None and 0 <= suffix <= 99:
+            # Normalize spoken years like "twenty twenty six" to 2026.
             text = " ".join(words[:index]) + " " + str(2000 + suffix)
             break
     spoken = re.fullmatch(r"([a-z]+)\s+(.+?)\s+(\d{4})", text.replace(",", ""))
@@ -84,6 +87,7 @@ def _calendar_date(text, now):
 
 
 def _calendar_time(text):
+    """Parse a spoken or numeric time; bare hours stay ambiguous without AM/PM."""
     text = re.sub(r"\s+", " ", text.strip().lower().replace(".", ""))
     text = re.sub(r"\b([ap])\s+m\b", r"\1m", text)
     match = re.fullmatch(r"(.+?)\s*(am|pm)?", text)
@@ -107,6 +111,7 @@ def _calendar_time(text):
             return None
         hour = hour % 12 + (12 if meridiem == "pm" else 0)
     elif not 13 <= hour <= 23 and hour != 0:
+        # A value like "4" could mean morning or afternoon, so ask the user.
         return None
     return datetime.min.replace(hour=hour, minute=minute).time()
 
@@ -213,6 +218,7 @@ def _prepare_calendar_event(request, speaker, listener, browser, now):
         end_time, keep_going = get_time(end_text, "What time does it end? Include AM or PM.")
         if end_time is None:
             return keep_going
+        # Event drafts currently support same-day events only.
         if end_time > start_time:
             break
         speaker("The end time must be after the start time on the same day.")

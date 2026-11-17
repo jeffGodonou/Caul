@@ -1,3 +1,5 @@
+"""Route recognized phrases to Caul's supported actions."""
+
 import random
 import subprocess
 import webbrowser
@@ -32,6 +34,7 @@ def respond(
     command = (command or "").strip()
     normalized = command.lower()
 
+    # Handle exact short phrases before prefix-based command matching.
     if normalized in {"quit", "exit", "goodbye"}:
         speaker("Goodbye!")
         return False
@@ -57,6 +60,7 @@ def respond(
         speaker("Tell me what you'd like me to search for.")
         return True
 
+    # Calendar phrases overlap with ordinary wording, so recognize them first.
     event_request = calendar_request(command)
     if event_request is not None:
         return prepare_event(
@@ -181,6 +185,7 @@ def respond(
 
     if normalized.startswith("open "):
         target = normalized[len("open "):].strip()
+        # Explicit allowlists prevent spoken text from becoming an arbitrary launch.
         apps = {
             "calculator": ["calc.exe"],
             "notepad": ["notepad.exe"],

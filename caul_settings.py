@@ -1,3 +1,5 @@
+"""Caul configuration defaults and environment-variable validation."""
+
 import logging
 import math
 import os
@@ -15,6 +17,7 @@ def _default_model_path():
     )
     if os.path.isdir(beside_module):
         return beside_module
+    # Installed builds may keep the model in the user's writable data directory.
     data_root = os.environ.get("LOCALAPPDATA") or os.path.expanduser("~")
     return os.path.join(data_root, "Caul", "models", MODEL_FOLDER_NAME)
 
