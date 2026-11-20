@@ -6,6 +6,7 @@ import random
 import sys
 
 # Keep these imports available from ``caul`` for existing callers and tests.
+from caul_alerts import AlertManager
 from caul_audio import MicrophoneError, _recognize, _record, speak
 from caul_calendar import (
     CALENDARS,
@@ -29,6 +30,7 @@ from caul_settings import (
 
 
 logger = logging.getLogger("caul")
+_active_alert_manager = None
 
 
 def listen(settings=None):
@@ -36,7 +38,14 @@ def listen(settings=None):
     from caul_audio import listen as _listen
 
     # Pass through the public module-level functions so callers can replace them.
-    return _listen(settings, recorder=_record, recognizer=_recognize, speaker=speak)
+    on_wait = _active_alert_manager.check_due if _active_alert_manager else None
+    return _listen(
+        settings,
+        recorder=_record,
+        recognizer=_recognize,
+        speaker=speak,
+        on_wait=on_wait,
+    )
 
 
 def respond(
@@ -47,6 +56,7 @@ def respond(
     app_launcher=None,
     random_choice=random.choice,
     listener=None,
+    alert_manager=None,
 ):
     """Handle supported commands and return False when asked to exit."""
     return _respond(
@@ -63,12 +73,18 @@ def respond(
         prepare_event=_prepare_calendar_event,
         calendars=CALENDARS,
         calendar_aliases=CALENDAR_ALIASES,
+        alert_manager=alert_manager or _active_alert_manager,
     )
 
 
-def main(settings=None):
+def main(settings=None, alert_manager=None):
+    global _active_alert_manager
+    previous_alert_manager = _active_alert_manager
     try:
         settings = settings or load_settings()
+        alert_manager = alert_manager or AlertManager(speak)
+        _active_alert_manager = alert_manager
+        alert_manager.check_due()
         logging.basicConfig(
             level=settings.log_level,
             format="%(asctime)s %(levelname)s %(name)s: %(message)s",
@@ -77,18 +93,22 @@ def main(settings=None):
         while True:
             command = listen(settings)
             if command is not None and not respond(
-                command, listener=lambda: listen(settings)
+                command,
+                listener=lambda: listen(settings),
+                alert_manager=alert_manager,
             ):
                 break
     except KeyboardInterrupt:
         speak("Goodbye!")
     except (OSError, ImportError, RuntimeError, ValueError) as error:
-        logger.exception("Caul could not start or access its audio devices.")
-        print("Caul audio/setup error:", error, file=sys.stderr)
+        logger.exception("Caul could not start or access a required resource.")
+        print("Caul setup error:", error, file=sys.stderr)
         print(
             "Check the setup and microphone troubleshooting steps in README.md.",
             file=sys.stderr,
         )
+    finally:
+        _active_alert_manager = previous_alert_manager
 
 
 if __name__ == "__main__":

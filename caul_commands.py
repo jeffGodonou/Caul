@@ -6,6 +6,7 @@ import webbrowser
 from datetime import datetime
 from urllib.parse import quote, urlencode
 
+from caul_alerts import AlertManager, _alert_request, handle_alert_request
 from caul_calendar import (
     CALENDARS,
     CALENDAR_ALIASES,
@@ -29,6 +30,7 @@ def respond(
     prepare_event=_prepare_calendar_event,
     calendars=CALENDARS,
     calendar_aliases=CALENDAR_ALIASES,
+    alert_manager=None,
 ):
     """Handle supported commands and return False when asked to exit."""
     command = (command or "").strip()
@@ -42,7 +44,7 @@ def respond(
         speaker("Hello! I'm Caul. Say goodbye when you want me to stop.")
         return True
     if normalized in {"help", "what can you do"}:
-        speaker("I can greet you, tell you the time, calculate basic arithmetic, play rock-paper-scissors, search Google or YouTube, check the weather, play music, prepare calendar events, open Google or Outlook Calendar, Calculator, Notepad, Google, or YouTube, or stop when you say goodbye.")
+        speaker("I can greet you, tell you the time, calculate basic arithmetic, play rock-paper-scissors, search Google or YouTube, check the weather, play music, set alerts and timers, prepare calendar events, open Google or Outlook Calendar, Calculator, Notepad, Google, or YouTube, or stop when you say goodbye.")
         return True
     if normalized in {"time", "what time is it"}:
         current_time = (clock or datetime.now)().strftime("%I:%M %p").lstrip("0")
@@ -59,6 +61,18 @@ def respond(
     }:
         speaker("Tell me what you'd like me to search for.")
         return True
+
+    alert_request = _alert_request(command)
+    if alert_request is not None:
+        if alert_manager is None:
+            alert_manager = AlertManager(speaker)
+        return handle_alert_request(
+            alert_request,
+            alert_manager,
+            speaker,
+            listener,
+            (clock or datetime.now)(),
+        )
 
     # Calendar phrases overlap with ordinary wording, so recognize them first.
     event_request = calendar_request(command)

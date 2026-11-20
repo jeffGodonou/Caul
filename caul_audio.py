@@ -29,8 +29,8 @@ def speak(text):
     engine.runAndWait()
 
 
-def _record(settings=None):
-    """Record one phrase as 16-bit PCM bytes; None if no speech was heard."""
+def _record(settings=None, on_wait=None):
+    """Record one phrase; return None if silent or an alert interrupted listening."""
     import time
 
     import numpy as np
@@ -58,6 +58,10 @@ def _record(settings=None):
             speech_start = None
             quiet = 0
             while True:
+                # Return to the main loop after speaking so the microphone does not
+                # mistake Caul's own alert for a new command.
+                if on_wait is not None and on_wait():
+                    return None
                 data = stream.read(block)[0]
                 loud = np.sqrt(np.mean(data.astype(np.float64) ** 2)) > threshold
                 now = time.monotonic()
@@ -105,10 +109,11 @@ def _recognize(pcm, settings):
     return json.loads(recognizer.Result()).get("text", "").strip()
 
 
-def listen(settings=None, recorder=None, recognizer=None, speaker=None):
+def listen(settings=None, recorder=None, recognizer=None, speaker=None, on_wait=None):
     """Listen once and return recognized words, or None if they were unclear."""
     settings = settings or load_settings()
-    pcm = (recorder or _record)(settings)
+    record = recorder or _record
+    pcm = record(settings) if on_wait is None else record(settings, on_wait=on_wait)
     if pcm is None:
         return None
 
