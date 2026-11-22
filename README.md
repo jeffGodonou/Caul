@@ -13,8 +13,8 @@ only used when a command opens a web page.
 - **Offline speech recognition** — your voice is never sent to a cloud service
 - **Local text-to-speech** — answers through the built-in Windows voice
 - **Voice commands** — time, arithmetic, rock-paper-scissors, Google/YouTube
-  search, weather lookup, Spotify search, preparing calendar events, and opening
-  Google or Outlook Calendar and other
+  search, weather lookup, Spotify search, alerts and timers, preparing calendar
+  events, and opening Google or Outlook Calendar and other
   approved apps
 - **Safe by default** — only allowlisted apps and sites can be opened; spoken
   input is never executed as a shell command
@@ -68,6 +68,8 @@ Start Caul, wait for "Caul is ready", then speak. Say **"goodbye"** (or
 | "help" | Lists what it can do |
 | "what time is it" | Tells the current time |
 | "calculate 12 divided by 3" | Answers 4 |
+| "set an alert for 6 PM" | Announces the alert at 6 PM |
+| "start a timer for 10 minutes" | Announces when the timer finishes |
 | "rock paper scissors rock" | Plays a round |
 | "search for …" / "search YouTube for …" | Opens a Google / YouTube search |
 | "what's the weather in Paris" | Opens a weather search |
@@ -89,6 +91,13 @@ Events must start and end on the same day. Caul opens a draft in the selected
 service; check the date, time and calendar time zone and save it there. Names
 in the title are not automatically invited. Event details are sent to the
 selected calendar website in the draft URL.
+
+Alerts accept a time such as "set an alert for 6 PM"; if that time has passed
+today, Caul asks for a future date. Timers accept durations such as "start a
+timer for one hour and 10 minutes". Multiple alerts and timers are supported
+and saved under your user data folder. If Caul is closed when one becomes due,
+it announces it the next time Caul starts; alerts do not fire while the app is
+closed.
 
 ## Configuration
 

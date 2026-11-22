@@ -23,6 +23,7 @@ caul = "caul:main"
 py-modules = [
     "caul",
     "caul_audio",
+    "caul_alerts",
     "caul_calendar",
     "caul_commands",
     "caul_math",
