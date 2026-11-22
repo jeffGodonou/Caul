@@ -130,14 +130,14 @@ class StarterCommandTests(unittest.TestCase):
     def test_main_reports_microphone_failure_without_crashing(self, listen_once, speaker):
         stderr = StringIO()
         with redirect_stderr(stderr), self.assertLogs("caul", level="ERROR"):
-            main(Settings())
-        self.assertIn("Caul audio/setup error: no input device", stderr.getvalue())
+            main(Settings(), alert_manager=Mock())
+        self.assertIn("Caul setup error: no input device", stderr.getvalue())
         speaker.assert_called_once_with("Caul is ready. Say hello, or say goodbye to stop.")
 
     @patch("caul.speak")
     @patch("caul.listen", side_effect=[None, "goodbye"])
     def test_main_keeps_listening_after_unclear_audio(self, listen_once, speaker):
-        main(Settings())
+        main(Settings(), alert_manager=Mock())
         self.assertEqual(listen_once.call_count, 2)
 
     @patch("caul.speak")
@@ -147,7 +147,7 @@ class StarterCommandTests(unittest.TestCase):
             "caul.respond",
             side_effect=lambda command, **kwargs: respond(command, speaker=speaker, **kwargs),
         ):
-            main(Settings())
+            main(Settings(), alert_manager=Mock())
         listen_once.assert_called_once_with(Settings())
         self.assertEqual(
             speaker.call_args_list,
@@ -173,7 +173,7 @@ class StarterCommandTests(unittest.TestCase):
     def test_help_command_lists_supported_actions(self):
         self.assertTrue(respond("help", speaker=self.speaker))
         self.speaker.assert_called_once_with(
-            "I can greet you, tell you the time, calculate basic arithmetic, play rock-paper-scissors, search Google or YouTube, check the weather, play music, prepare calendar events, open Google or Outlook Calendar, Calculator, Notepad, Google, or YouTube, or stop when you say goodbye."
+            "I can greet you, tell you the time, calculate basic arithmetic, play rock-paper-scissors, search Google or YouTube, check the weather, play music, set alerts and timers, prepare calendar events, open Google or Outlook Calendar, Calculator, Notepad, Google, or YouTube, or stop when you say goodbye."
         )
 
     def test_time_command_speaks_the_current_time(self):
@@ -317,7 +317,7 @@ class StarterCommandTests(unittest.TestCase):
                 command, speaker=speaker, browser=browser, **kwargs
             ),
         ):
-            main(settings)
+            main(settings, alert_manager=Mock())
         self.assertEqual(listen_once.call_args_list, [unittest.mock.call(settings)] * 3)
         browser.assert_called_once_with("https://calendar.google.com/")
 
@@ -405,7 +405,7 @@ class StarterCommandTests(unittest.TestCase):
             command, speaker=speaker, browser=browser,
             clock=lambda: datetime(2026, 11, 13), **kwargs
         )):
-            main(settings)
+            main(settings, alert_manager=Mock())
         self.assertEqual(listen_once.call_args_list, [unittest.mock.call(settings)] * 3)
         browser.assert_called_once()
 
