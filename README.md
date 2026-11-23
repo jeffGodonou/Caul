@@ -13,7 +13,7 @@ only used when a command opens a web page.
 - **Offline speech recognition** — your voice is never sent to a cloud service
 - **Local text-to-speech** — answers through the built-in Windows voice
 - **Voice commands** — time, arithmetic, rock-paper-scissors, Google/YouTube
-  search, weather lookup, Spotify search, alerts and timers, preparing calendar
+  search, weather lookup, Spotify search, alerts and timers, notes, preparing calendar
   events, and opening Google or Outlook Calendar and other
   approved apps
 - **Safe by default** — only allowlisted apps and sites can be opened; spoken
@@ -70,6 +70,8 @@ Start Caul, wait for "Caul is ready", then speak. Say **"goodbye"** (or
 | "calculate 12 divided by 3" | Answers 4 |
 | "set an alert for 6 PM" | Announces the alert at 6 PM |
 | "start a timer for 10 minutes" | Announces when the timer finishes |
+| "create a note" | Asks you to dictate a note, then opens it in Notepad |
+| "start a document" | Opens a blank Notepad document |
 | "rock paper scissors rock" | Plays a round |
 | "search for …" / "search YouTube for …" | Opens a Google / YouTube search |
 | "what's the weather in Paris" | Opens a weather search |
@@ -98,6 +100,12 @@ timer for one hour and 10 minutes". Multiple alerts and timers are supported
 and saved under your user data folder. If Caul is closed when one becomes due,
 it announces it the next time Caul starts; alerts do not fire while the app is
 closed.
+
+For a note, say "create a note", then dictate one phrase when prompted. Say
+"cancel" to stop. The recognized text is written to a file in your system's
+temporary folder and opened in Notepad. Use **Save As** to keep a permanent
+copy; the temporary file may remain on disk until you or the system removes it.
+"Start a document" opens a blank Notepad window without creating a file.
 
 ## Configuration
 
@@ -162,8 +170,9 @@ The result is `dist\caul\caul.exe`.
 ## Privacy
 
 Caul records audio only while listening for a command, processes it locally,
-and discards it immediately. Nothing is transmitted or stored. Web commands
-open pages in your browser, which then connect to those services as usual.
+and discards the audio afterward. Dictated notes are stored as temporary text
+files; alerts and timers are saved locally. Web commands open pages in your
+browser, which then connect to those services as usual.
 
 ## License
 
