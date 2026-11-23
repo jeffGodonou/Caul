@@ -1,7 +1,10 @@
 """Route recognized phrases to Caul's supported actions."""
 
+import logging
+import os
 import random
 import subprocess
+import tempfile
 import webbrowser
 from datetime import datetime
 from urllib.parse import quote, urlencode
@@ -14,6 +17,9 @@ from caul_calendar import (
     _prepare_calendar_event,
 )
 from caul_math import _format_number, calculate
+
+
+logger = logging.getLogger("caul")
 
 
 def respond(
@@ -44,7 +50,7 @@ def respond(
         speaker("Hello! I'm Caul. Say goodbye when you want me to stop.")
         return True
     if normalized in {"help", "what can you do"}:
-        speaker("I can greet you, tell you the time, calculate basic arithmetic, play rock-paper-scissors, search Google or YouTube, check the weather, play music, set alerts and timers, prepare calendar events, open Google or Outlook Calendar, Calculator, Notepad, Google, or YouTube, or stop when you say goodbye.")
+        speaker("I can greet you, tell you the time, calculate basic arithmetic, play rock-paper-scissors, search Google or YouTube, check the weather, play music, set alerts and timers, create notes and documents, prepare calendar events, open Google or Outlook Calendar, Calculator, Notepad, Google, or YouTube, or stop when you say goodbye.")
         return True
     if normalized in {"time", "what time is it"}:
         current_time = (clock or datetime.now)().strftime("%I:%M %p").lstrip("0")
@@ -60,6 +66,57 @@ def respond(
         "youtube search for",
     }:
         speaker("Tell me what you'd like me to search for.")
+        return True
+
+    if normalized in {"create a note", "create note", "make a note", "take a note"}:
+        speaker("What would you like the note to say? Say cancel to stop.")
+        note = listener()
+        if not note or not note.strip():
+            speaker("I didn't receive a note. Note creation cancelled.")
+            return True
+        note = note.strip()
+        if note.lower() == "cancel":
+            speaker("Note creation cancelled.")
+            return True
+        if note.lower() in {"quit", "exit", "goodbye"}:
+            speaker("Goodbye!")
+            return False
+        note_path = None
+        try:
+            with tempfile.NamedTemporaryFile(
+                mode="w", encoding="utf-8", prefix="caul-note-", suffix=".txt",
+                delete=False,
+            ) as note_file:
+                note_path = note_file.name
+                note_file.write(note)
+        except OSError:
+            logger.exception("Could not write temporary note.")
+            if note_path is not None:
+                try:
+                    os.remove(note_path)
+                except OSError:
+                    logger.exception("Could not remove incomplete temporary note.")
+            speaker("I couldn't write the note. Please check the available storage.")
+            return True
+        launch = app_launcher if app_launcher is not None else subprocess.Popen
+        try:
+            launch(["notepad.exe", note_path])
+        except OSError:
+            logger.exception("Could not open the temporary note in Notepad.")
+            speaker("I couldn't open Notepad. Your temporary note is at " + note_path + ".")
+            return True
+        speaker("Opening your temporary note in Notepad. Use Save As to keep it.")
+        return True
+
+    if normalized in {"start a document", "start document", "create a document", "create document"}:
+        launch = app_launcher if app_launcher is not None else subprocess.Popen
+        try:
+            launch(["notepad.exe"])
+        except OSError:
+            logger.exception("Could not open a document in Notepad.")
+            speaker("I couldn't open Notepad. Please check that it is installed.")
+            return True
+        speaker("Opening a blank document in Notepad.")
         return True
 
     alert_request = _alert_request(command)
