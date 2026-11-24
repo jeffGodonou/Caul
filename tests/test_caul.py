@@ -173,7 +173,7 @@ class StarterCommandTests(unittest.TestCase):
     def test_help_command_lists_supported_actions(self):
         self.assertTrue(respond("help", speaker=self.speaker))
         self.speaker.assert_called_once_with(
-            "I can greet you, tell you the time, calculate basic arithmetic, play rock-paper-scissors, search Google or YouTube, check the weather, play music, set alerts and timers, prepare calendar events, open Google or Outlook Calendar, Calculator, Notepad, Google, or YouTube, or stop when you say goodbye."
+            "I can greet you, tell you the time, calculate basic arithmetic, play rock-paper-scissors, search Google or YouTube, check the weather, play music, set alerts and timers, create notes and documents, prepare calendar events, open Google or Outlook Calendar, Calculator, Notepad, Google, or YouTube, or stop when you say goodbye."
         )
 
     def test_time_command_speaks_the_current_time(self):
