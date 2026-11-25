@@ -44,13 +44,16 @@ def respond(
 
     # Handle exact short phrases before prefix-based command matching.
     if normalized in {"quit", "exit", "goodbye"}:
-        speaker("Goodbye!")
+        speaker("Goodbye! See you soon...")
         return False
     if normalized in {"hello", "hi", "hey"}:
         speaker("Hello! I'm Caul. Say goodbye when you want me to stop.")
         return True
     if normalized in {"help", "what can you do"}:
-        speaker("I can greet you, tell you the time, calculate basic arithmetic, play rock-paper-scissors, search Google or YouTube, check the weather, play music, set alerts and timers, create notes and documents, prepare calendar events, open Google or Outlook Calendar, Calculator, Notepad, Google, or YouTube, or stop when you say goodbye.")
+        speaker("I can greet you, tell you the time, calculate basic arithmetic, " \
+        "play rock-paper-scissors, search Google or YouTube, check the weather, " \
+        "play music, set alerts and timers, create notes and documents, prepare calendar events, " \
+        "open Google or Outlook Calendar, Calculator, Notepad, Google, or YouTube, or stop when you say goodbye.")
         return True
     if normalized in {"time", "what time is it"}:
         current_time = (clock or datetime.now)().strftime("%I:%M %p").lstrip("0")
