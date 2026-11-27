@@ -72,7 +72,7 @@ def respond(
         return True
 
     if normalized in {"create a note", "create note", "make a note", "take a note"}:
-        speaker("What would you like the note to say? Say cancel to stop.")
+        speaker("What would you like the note to say? You can say cancel to stop.")
         note = listener()
         if not note or not note.strip():
             speaker("I didn't receive a note. Note creation cancelled.")
@@ -111,7 +111,8 @@ def respond(
         speaker("Opening your temporary note in Notepad. Use Save As to keep it.")
         return True
 
-    if normalized in {"start a document", "start document", "create a document", "create document"}:
+    if normalized in {"start a document", "start document", "create a document", 
+                      "create document", "create a note", "note this", "make a note"}:
         launch = app_launcher if app_launcher is not None else subprocess.Popen
         try:
             launch(["notepad.exe"])
